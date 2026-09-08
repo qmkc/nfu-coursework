@@ -1,0 +1,7 @@
+{
+  "extends": "stylelint-config-standard",
+  "rules": {
+    "import-notation": "url",
+    "no-descending-specificity": null
+  }
+}

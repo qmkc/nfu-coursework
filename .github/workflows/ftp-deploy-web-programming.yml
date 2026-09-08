@@ -1,0 +1,36 @@
+name: Deploy 115-1 Web Programming (FTP)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '115-1/web-programming/code/**'
+  workflow_dispatch:
+
+jobs:
+  ftp-deploy:
+    name: FTP sync to InfinityFree
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Check FTP secrets
+        id: check-secrets
+        run: |
+          if [ -n "${{ secrets.FTP_SERVER }}" ] && [ -n "${{ secrets.FTP_USERNAME }}" ] && [ -n "${{ secrets.FTP_PASSWORD }}" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::FTP_SERVER / FTP_USERNAME / FTP_PASSWORD not fully configured in repo secrets; skipping deploy."
+          fi
+
+      - name: Sync files via FTP
+        if: steps.check-secrets.outputs.ok == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: 115-1/web-programming/code/
+          server-dir: /htdocs/

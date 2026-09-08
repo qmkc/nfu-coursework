@@ -1,0 +1,17 @@
+{
+  "name": "web-programming",
+  "private": true,
+  "version": "1.0.0",
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "lint:html": "htmlhint \"code/**/*.html\"",
+    "lint:css": "stylelint \"code/**/*.css\"",
+    "lint": "htmlhint \"code/**/*.html\" && stylelint \"code/**/*.css\""
+  },
+  "devDependencies": {
+    "htmlhint": "^1.5.0",
+    "prettier": "^3.9.6",
+    "stylelint": "^16.9.0",
+    "stylelint-config-standard": "^36.0.1"
+  }
+}
