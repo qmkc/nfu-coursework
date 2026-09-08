@@ -34,3 +34,4 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: 115-1/web-programming/code/
           server-dir: /htdocs/
+          state-name: ../.ftp-deploy-state.json
