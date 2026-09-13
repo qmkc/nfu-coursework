@@ -5,6 +5,7 @@ ErrorDocument 500 /500.html
 
 RewriteEngine On
 
+RewriteRule ^\.deploy-manifest$ - [R=404,L]
 RewriteRule ^runtime/ - [F,L]
 
 RewriteCond %{REQUEST_FILENAME} !-f
