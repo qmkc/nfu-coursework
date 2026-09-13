@@ -11,17 +11,24 @@ MANIFEST_FILENAME=".deploy-manifest"
 
 TMP_LOCAL_MANIFEST=$(mktemp ./.tmp.manifest.local.XXXXXX)
 TMP_REMOTE_MANIFEST=$(mktemp ./.tmp.manifest.remote.XXXXXX)
-TMP_UPLOAD_LIST=$(mktemp ./.tmp.upload-list.XXXXXX)
-TMP_REMOVE_LIST=$(mktemp ./.tmp.remove-list.XXXXXX)
 TMP_FTP_CMD=$(mktemp ./.tmp.ftp-cmd.XXXXXX)
+
+upload_list=""
+remove_list=""
+dir_list=""
 
 cleanup() {
   local exit_code=$?
-  rm -f "${TMP_LOCAL_MANIFEST}" "${TMP_REMOTE_MANIFEST}" \
-  "${TMP_UPLOAD_LIST}" "${TMP_REMOVE_LIST}" "${TMP_FTP_CMD}"
+  rm -f "${TMP_LOCAL_MANIFEST}" "${TMP_REMOTE_MANIFEST}" "${TMP_FTP_CMD}"
   return $exit_code
 }
 trap cleanup EXIT
+
+count_lines() {
+  local s="$1"
+  [ -z "$s" ] && { echo 0; return; }
+  printf '%s\n' "$s" | wc -l
+}
 
 error_exit() {
   echo "Error: $*" >&2
@@ -82,10 +89,10 @@ file_count=0
 while IFS= read -r -d '' local_file; do
   relative_path="${local_file#dist/}"
   remote_path="${FTP_REMOTE_BASE}/${relative_path}"
-  
+
   hash=$(sha256sum -- "$local_file" | awk '{print $1}') || error_exit "Failed to hash $local_file"
   [ -n "$hash" ] || error_exit "Failed to hash $local_file"
-  
+
   printf '%s\t%s\n' "$remote_path" "$hash" >> "${TMP_LOCAL_MANIFEST}"
   file_count=$((file_count + 1))
 done < <(find dist -type f -print0 2>/dev/null | LC_ALL=C sort -z)
@@ -124,57 +131,68 @@ fi
 echo ""
 echo "[3/5] Computing file differences..."
 
-: > "${TMP_UPLOAD_LIST}"
-: > "${TMP_REMOVE_LIST}"
-
 if [ "$remote_manifest_exists" = true ] && [ -s "${TMP_REMOTE_MANIFEST}" ]; then
-  if comm -23 <(LC_ALL=C sort "${TMP_LOCAL_MANIFEST}") \
+  if upload_list=$(comm -23 <(LC_ALL=C sort "${TMP_LOCAL_MANIFEST}") \
   <(LC_ALL=C sort "${TMP_REMOTE_MANIFEST}") \
-  | cut -f1 > "${TMP_UPLOAD_LIST}"; then
-    changed_count=$(wc -l < "${TMP_UPLOAD_LIST}")
+  | cut -f1); then
+    changed_count=$(count_lines "$upload_list")
     info "  Found $changed_count changed/new files"
   else
     warn "Failed to compute differences, will upload all files"
-    cut -f1 < "${TMP_LOCAL_MANIFEST}" > "${TMP_UPLOAD_LIST}"
+    upload_list=$(cut -f1 < "${TMP_LOCAL_MANIFEST}")
   fi
-  
-  if comm -23 <(cut -f1 "${TMP_REMOTE_MANIFEST}" | LC_ALL=C sort -u) \
-  <(cut -f1 "${TMP_LOCAL_MANIFEST}" | LC_ALL=C sort -u) \
-  > "${TMP_REMOVE_LIST}"; then
-    removed_count=$(wc -l < "${TMP_REMOVE_LIST}")
+
+  if remove_list=$(comm -23 <(cut -f1 "${TMP_REMOTE_MANIFEST}" | LC_ALL=C sort -u) \
+  <(cut -f1 "${TMP_LOCAL_MANIFEST}" | LC_ALL=C sort -u)); then
+    removed_count=$(count_lines "$remove_list")
     info "  Found $removed_count files removed locally"
   else
     warn "Failed to compute removed files, skipping remote cleanup"
-    : > "${TMP_REMOVE_LIST}"
+    remove_list=""
   fi
 else
-  cut -f1 < "${TMP_LOCAL_MANIFEST}" > "${TMP_UPLOAD_LIST}"
+  upload_list=$(cut -f1 < "${TMP_LOCAL_MANIFEST}")
   info "  First deployment: will upload all $file_count files"
 fi
 
-if [ ! -s "${TMP_UPLOAD_LIST}" ] && [ ! -s "${TMP_REMOVE_LIST}" ]; then
+if [ -z "$upload_list" ] && [ -z "$remove_list" ]; then
   echo ""
   success "No changes detected - remote is already synchronized"
   exit 0
 fi
 
-upload_count=$(wc -l < "${TMP_UPLOAD_LIST}")
-removed_count=$(wc -l < "${TMP_REMOVE_LIST}")
+upload_count=$(count_lines "$upload_list")
+removed_count=$(count_lines "$remove_list")
 
 if [ "$upload_count" -gt 0 ]; then
   info "  Will upload $upload_count files:"
-  head -5 "${TMP_UPLOAD_LIST}" | sed 's/^/      /'
+  printf '%s\n' "$upload_list" | head -5 | sed 's/^/      /'
   [ "$upload_count" -gt 5 ] && info "      ... and $((upload_count - 5)) more"
 fi
 
 if [ "$removed_count" -gt 0 ]; then
   info "  Will remove $removed_count files from remote:"
-  head -5 "${TMP_REMOVE_LIST}" | sed 's/^/      /'
+  printf '%s\n' "$remove_list" | head -5 | sed 's/^/      /'
   [ "$removed_count" -gt 5 ] && info "      ... and $((removed_count - 5)) more"
 fi
 
 echo ""
 echo "[4/5] Syncing files to ${FTP_HOST}..."
+
+if [ "$upload_count" -gt 0 ]; then
+  dir_list=$(printf '%s\n' "$upload_list" | while IFS= read -r remote_path; do
+    [ -z "$remote_path" ] && continue
+    dirname -- "$remote_path"
+  done | LC_ALL=C sort -u | awk '
+    { line[NR] = $0 }
+    END {
+      for (i = 1; i <= NR; i++) {
+        if (i < NR && index(line[i+1], line[i] "/") == 1) continue
+        print line[i]
+      }
+    }
+  ')
+fi
 
 generate_ftp_config "${TMP_FTP_CMD}"
 
@@ -184,28 +202,34 @@ remove_commands=0
 
 {
   echo "lcd $(pwd)"
-  
+
+  while IFS= read -r remote_dir; do
+    [ -z "$remote_dir" ] && continue
+    [ "$remote_dir" = "${FTP_REMOTE_BASE}" ] && continue
+    printf 'mkdir -p -f "%s"\n' "$remote_dir"
+  done <<< "$dir_list"
+
   while IFS= read -r remote_path; do
     [ -z "$remote_path" ] && continue
-    
+
     local_path="dist${remote_path#"${FTP_REMOTE_BASE}"}"
-    
+
     if [ ! -f "$local_path" ]; then
       warn "Local file missing: $local_path (skipping)"
       local_file_missing=$((local_file_missing + 1))
       continue
     fi
-    
+
     printf 'put "%s" -o "%s"\n' "$local_path" "$remote_path"
     upload_commands=$((upload_commands + 1))
-  done < "${TMP_UPLOAD_LIST}"
-  
+  done <<< "$upload_list"
+
   while IFS= read -r remote_path; do
     [ -z "$remote_path" ] && continue
     printf 'rm -f "%s"\n' "$remote_path"
     remove_commands=$((remove_commands + 1))
-  done < "${TMP_REMOVE_LIST}"
-  
+  done <<< "$remove_list"
+
   echo "bye"
 } >> "${TMP_FTP_CMD}"
 
