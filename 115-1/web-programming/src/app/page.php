@@ -4,14 +4,21 @@ return [
   'static' => true,
 
   'render' => function (array $params, array $app): string {
-    ['blade' => $blade, 'site' => $site, 'content' => $content, 'weekCount' => $weekCount, 'currentYear' => $currentYear] = $app;
+    [
+      'blade' => $blade,
+      'site' => $site,
+      'content' => $content,
+      'weekThemes' => $weekThemes,
+      'weekCount' => $weekCount,
+      'currentYear' => $currentYear,
+    ] = $app;
 
     $weeks = [];
     for ($i = 1; $i <= $weekCount; $i++) {
       $weeks[] = [
         'no' => $i,
         'label' => sprintf('Week %02d', $i),
-        'summary' => '本週成果',
+        'summary' => $weekThemes[$i] ?? null,
       ];
     }
 

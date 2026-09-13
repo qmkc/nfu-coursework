@@ -28,7 +28,8 @@
     @foreach($weeks as $week)
       <a class="week-row" href="/weekly/{{ sprintf('%02d', $week['no']) }}/"><span
           class="wn">{{ sprintf('%02d', $week['no']) }}</span><span class="wt">{{ $week['label'] }}</span><span
-          class="ws">{{ $week['summary'] }}</span><span class="arrow">→</span></a>
+          class="ws{{ $week['summary'] === null ? ' ws-empty' : '' }}">{{ $week['summary'] ?? '尚未規劃主題' }}</span><span
+          class="arrow">→</span></a>
     @endforeach
   </div>
 

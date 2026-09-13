@@ -10,10 +10,31 @@
   --line: #dedad0;
   --muted: #6f6c62;
   --accent: #b3401f;
+  --shadow: rgb(20 20 15 / 12%);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #efece3;
+    --paper: #17160f;
+    --paper-2: #211f16;
+    --line: #38352a;
+    --muted: #9a9384;
+    --accent: #e2723a;
+    --shadow: rgb(0 0 0 / 45%);
+
+    color-scheme: dark;
+  }
 }
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -21,6 +42,9 @@ body {
   background: var(--paper);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 a {
@@ -31,19 +55,61 @@ a:hover {
   color: var(--accent);
 }
 
+a:focus-visible,
+button:focus-visible,
+.btn:focus-visible,
+.nav-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 1px;
+}
+
 ::selection {
   background: var(--ink);
   color: var(--paper);
 }
 
-.container {
-  max-width: 920px;
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 100;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: top 0.15s ease;
+}
+
+.skip-link:focus {
+  top: 0.75rem;
+  color: var(--paper);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ---------- Navbar ---------- */
 .site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
   border-bottom: 1px solid var(--line);
-  background: var(--paper);
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter: saturate(180%) blur(10px);
+  /* stylelint-disable-next-line property-no-vendor-prefix -- style.css is a
+     static asset with no autoprefixer pass; Safari still needs this. */
+  -webkit-backdrop-filter: saturate(180%) blur(10px);
 }
 
 .site-nav .container {
@@ -93,17 +159,45 @@ a:hover {
   display: inline-flex;
   gap: 0.4rem;
   align-items: center;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
 }
 
 .site-nav .btn-gh:hover {
   background: var(--ink);
   color: var(--paper);
+  transform: translateY(-1px);
+}
+
+/* MUI mobile nav drawer, repainted to match the site's palette */
+.MuiDrawer-paper {
+  background: var(--paper) !important;
+  color: var(--ink) !important;
+}
+
+.MuiDrawer-paper .navbar-nav {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.MuiDrawer-paper .nav-link {
+  display: block;
+  padding: 0.6rem 0.2rem !important;
+}
+
+.MuiDrawer-paper .btn-gh {
+  margin-top: 0.5rem;
+  justify-content: center;
 }
 
 /* ---------- Hero ---------- */
 .hero {
   padding: 64px 0 40px;
   border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--paper-2), var(--paper) 70%);
 }
 
 .hero .kicker {
@@ -162,6 +256,7 @@ a:hover {
   margin: 60px 0 22px;
   border-bottom: 1px solid var(--line);
   padding-bottom: 12px;
+  scroll-margin-top: 84px;
 }
 
 .section-head .num {
@@ -219,6 +314,7 @@ a:hover {
   background: var(--paper-2);
   padding-left: 14px;
   color: var(--ink);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .week-row .wn {
@@ -244,6 +340,11 @@ a:hover {
   font-family: var(--mono);
 }
 
+.week-row .ws-empty {
+  font-style: italic;
+  opacity: 0.65;
+}
+
 .week-row .arrow {
   opacity: 0;
   transform: translateX(-4px);
@@ -260,8 +361,19 @@ a:hover {
 .project-row {
   display: flex;
   gap: 20px;
-  padding: 26px 0;
+  padding: 26px 16px;
+  margin: 0 -16px;
   border-bottom: 1px solid var(--line);
+  border-radius: 3px;
+  transition: background 0.15s ease;
+}
+
+.project-row:hover {
+  background: var(--paper-2);
+}
+
+.project-row:hover .idx {
+  color: var(--accent);
 }
 
 .project-row .tag {
@@ -298,12 +410,20 @@ a:hover {
   color: var(--line);
   line-height: 1;
   flex-shrink: 0;
+  transition: color 0.15s ease;
 }
 
 /* ---------- Reflection ---------- */
 .reflect-row {
-  padding: 20px 0;
+  padding: 20px 16px;
+  margin: 0 -16px;
   border-bottom: 1px solid var(--line);
+  border-radius: 3px;
+  transition: background 0.15s ease;
+}
+
+.reflect-row:hover {
+  background: var(--paper-2);
 }
 
 .reflect-row .t {
@@ -411,6 +531,10 @@ footer.site-footer a:hover {
 
 .section-card .placeholder {
   color: var(--muted);
+  border: 1px dashed var(--line);
+  border-radius: 3px;
+  padding: 14px 16px;
+  font-style: italic;
 }
 
 .section-card pre {
@@ -421,6 +545,7 @@ footer.site-footer a:hover {
   font-family: var(--mono);
   font-size: 0.86rem;
   overflow: auto;
+  border-radius: 3px;
 }
 
 .week-nav {
@@ -442,12 +567,24 @@ footer.site-footer a:hover {
   align-items: center;
   gap: 0.4rem;
   font-size: 0.9rem;
-  transition: 0.15s;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .week-nav .btn:hover {
   background: var(--ink);
   color: var(--paper);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px var(--shadow);
+}
+
+.week-nav .btn:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 .week-nav .btn.disabled {

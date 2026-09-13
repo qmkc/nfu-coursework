@@ -7,6 +7,8 @@
   <meta name="robots" content="noindex, nofollow, noarchive" />
   <title>{{ $pageTitle }}</title>
   <meta name="description" content="{{ $pageDescription }}" />
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>" />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -16,6 +18,8 @@
 </head>
 
 <body>
+  <a class="skip-link" href="#main-content">跳至主要內容</a>
+
   <nav class="navbar navbar-expand-md site-nav">
     <div class="container">
       <a class="navbar-brand" href="/">
@@ -35,7 +39,9 @@
   </nav>
 
   <div class="container">
-    @yield('content')
+    <main id="main-content">
+      @yield('content')
+    </main>
 
     <footer class="site-footer">
       <span>© {{ $currentYear }} {{ $site['student_id'] }}</span>

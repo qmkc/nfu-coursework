@@ -6,7 +6,6 @@ use FilesystemIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use RuntimeException;
-use SplFileInfo;
 
 final class Router
 {

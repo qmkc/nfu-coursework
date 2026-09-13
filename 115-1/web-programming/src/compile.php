@@ -122,6 +122,11 @@ foreach ($router->routes() as $route) {
 }
 
 writeMinified(
+  "{$distPath}/403.html",
+  $router->renderStatus(403, '403｜禁止存取', '這個路徑不開放存取，回首頁看看其他內容吧。'),
+  $minifier
+);
+writeMinified(
   "{$distPath}/404.html",
   $router->renderStatus(404, '404｜找不到頁面', '網址可能打錯了，或是頁面還沒做好，回首頁看看吧。'),
   $minifier
@@ -131,6 +136,6 @@ writeMinified(
   $router->renderStatus(500, '500｜伺服器發生錯誤', '這個頁面暫時無法顯示，請稍後再試。'),
   $minifier
 );
-$count += 2;
+$count += 3;
 
 printf("已建置 %d 個靜態頁面到 dist/\n", $count);

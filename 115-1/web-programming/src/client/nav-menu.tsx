@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import IconButton from '@mui/material/IconButton';
 import Drawer from '@mui/material/Drawer';
@@ -8,24 +8,55 @@ interface NavMenuProps {
   githubUser: string;
 }
 
-function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+const SECTIONS = [
+  { id: 'weekly', label: '每週成果' },
+  { id: 'projects', label: '專題作品' },
+  { id: 'reflection', label: '學習反思' },
+] as const;
+
+/** Highlights whichever section is currently crossing the middle of the viewport. */
+function useActiveSection(): string {
+  const [activeSection, setActiveSection] = useState<string>(SECTIONS[0].id);
+
+  useEffect(() => {
+    const elements = SECTIONS.map((s) => document.getElementById(s.id)).filter(
+      (el): el is HTMLElement => el !== null
+    );
+    if (elements.length === 0) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((entry) => entry.isIntersecting);
+        if (visible.length > 0) {
+          setActiveSection(visible[0].target.id);
+        }
+      },
+      { rootMargin: '-45% 0px -50% 0px', threshold: 0 }
+    );
+
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  return activeSection;
+}
+
+function NavLinks({ activeSection, onNavigate }: { activeSection: string; onNavigate?: () => void }) {
   return (
     <ul className="navbar-nav align-items-md-center gap-md-1" onClick={onNavigate}>
-      <li className="nav-item">
-        <a className="nav-link active" href="#weekly">
-          每週成果
-        </a>
-      </li>
-      <li className="nav-item">
-        <a className="nav-link" href="#projects">
-          專題作品
-        </a>
-      </li>
-      <li className="nav-item">
-        <a className="nav-link" href="#reflection">
-          學習反思
-        </a>
-      </li>
+      {SECTIONS.map(({ id, label }) => (
+        <li className="nav-item" key={id}>
+          <a
+            className={`nav-link${id === activeSection ? ' active' : ''}`}
+            href={`#${id}`}
+            aria-current={id === activeSection ? 'true' : undefined}
+          >
+            {label}
+          </a>
+        </li>
+      ))}
     </ul>
   );
 }
@@ -40,11 +71,12 @@ function GithubLink({ githubUser }: { githubUser: string }) {
 
 function NavMenu({ githubUser }: NavMenuProps) {
   const [open, setOpen] = useState(false);
+  const activeSection = useActiveSection();
 
   return (
     <>
       <div className="d-none d-md-flex align-items-center gap-md-1">
-        <NavLinks />
+        <NavLinks activeSection={activeSection} />
         <div className="ms-md-3">
           <GithubLink githubUser={githubUser} />
         </div>
@@ -64,7 +96,7 @@ function NavMenu({ githubUser }: NavMenuProps) {
           className="site-nav d-flex flex-column gap-2 p-3"
           style={{ minWidth: 220 }}
         >
-          <NavLinks onNavigate={() => setOpen(false)} />
+          <NavLinks activeSection={activeSection} onNavigate={() => setOpen(false)} />
           <GithubLink githubUser={githubUser} />
         </div>
       </Drawer>
