@@ -166,13 +166,19 @@ removed_count=$(count_lines "$remove_list")
 
 if [ "$upload_count" -gt 0 ]; then
   info "  Will upload $upload_count files:"
-  printf '%s\n' "$upload_list" | head -5 | sed 's/^/      /'
+  # mapfile + printf (both builtins, no pipe) instead of `... | head -5`:
+  # piping a long printf into head makes head exit as soon as it has its 5
+  # lines, and printf then dies with SIGPIPE trying to write the rest -
+  # which, under pipefail + set -e, aborts the whole script right here.
+  mapfile -t upload_preview <<< "$upload_list"
+  printf '      %s\n' "${upload_preview[@]:0:5}"
   [ "$upload_count" -gt 5 ] && info "      ... and $((upload_count - 5)) more"
 fi
 
 if [ "$removed_count" -gt 0 ]; then
   info "  Will remove $removed_count files from remote:"
-  printf '%s\n' "$remove_list" | head -5 | sed 's/^/      /'
+  mapfile -t remove_preview <<< "$remove_list"
+  printf '      %s\n' "${remove_preview[@]:0:5}"
   [ "$removed_count" -gt 5 ] && info "      ... and $((removed_count - 5)) more"
 fi
 
