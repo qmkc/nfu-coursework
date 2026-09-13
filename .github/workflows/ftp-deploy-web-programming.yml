@@ -94,12 +94,12 @@ jobs:
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
           set -euo pipefail
-          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" -e "
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -e "
             set ftp:passive-mode true;
             set cmd:fail-exit no;
             get /.deploy-manifest.txt -o old-manifest.txt;
             quit
-          " || true
+          " "$FTP_SERVER" || true
           [ -s old-manifest.txt ] || : > old-manifest.txt
           LC_ALL=C sort -o old-manifest.txt old-manifest.txt
 
@@ -172,17 +172,17 @@ jobs:
           echo "------------------------"
 
           set +e
-          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" -f lftp-script.txt
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -f lftp-script.txt "$FTP_SERVER"
           lftp_status=$?
           set -e
           echo "lftp exited with status $lftp_status (informational only — verifying below instead of trusting this directly)"
 
-          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" -e "
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -e "
             set ftp:passive-mode true;
             set cmd:fail-exit no;
             get /.deploy-manifest.txt -o uploaded-manifest.txt;
             quit
-          " || true
+          " "$FTP_SERVER" || true
 
           if [ -s uploaded-manifest.txt ] && diff -q new-manifest.txt uploaded-manifest.txt > /dev/null; then
             echo "Verified: server manifest matches this build. Deploy succeeded."
