@@ -18,8 +18,6 @@
 </head>
 
 <body>
-  <a class="skip-link" href="#main-content">跳至主要內容</a>
-
   <nav class="navbar navbar-expand-md site-nav">
     <div class="container">
       <a class="navbar-brand" href="/">
@@ -31,8 +29,8 @@
         <script type="module" src="/assets/js/nav-menu.js"></script>
       @else
         <div class="ms-auto">
-          <a class="btn-gh" href="https://github.com/{{ $site['github_user'] }}" target="_blank"
-            rel="noopener">GitHub ↗</a>
+          <a class="btn-gh" href="https://github.com/{{ $site['github_user'] }}" target="_blank" rel="noopener">GitHub
+            ↗</a>
         </div>
       @endif
     </div>
