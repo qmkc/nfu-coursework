@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - '.github/workflows/ftp-deploy-web-programming.yml'
       - '115-1/web-programming/src/**'
       - '115-1/web-programming/public/**'
       - '115-1/web-programming/composer.json'
@@ -11,6 +12,10 @@ on:
       - '115-1/web-programming/package.json'
       - '115-1/web-programming/pnpm-lock.yaml'
   workflow_dispatch:
+
+concurrency:
+  group: ftp-deploy-web-programming
+  cancel-in-progress: false
 
 jobs:
   ftp-deploy:
@@ -59,13 +64,98 @@ jobs:
             echo "::warning::FTP_SERVER / FTP_USERNAME / FTP_PASSWORD not fully configured in repo secrets; skipping deploy."
           fi
 
-      - name: Sync dist/ via FTP
+      - name: Install lftp
         if: steps.check-secrets.outputs.ok == 'true'
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: 115-1/web-programming/dist/
-          server-dir: /htdocs/
-          state-name: ../.ftp-deploy-state-public.json
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      - name: Build content-hash manifest
+        if: steps.check-secrets.outputs.ok == 'true'
+        run: |
+          set -euo pipefail
+          : > new-manifest.txt
+          find dist -type f | LC_ALL=C sort | while IFS= read -r f; do
+            rel="${f#dist/}"
+            if [ "$rel" = ".htaccess" ]; then
+              remote="/.htaccess"
+            else
+              remote="/htdocs/$rel"
+            fi
+            hash=$(sha256sum -- "$f" | awk '{print $1}')
+            printf '%s\t%s\n' "$remote" "$hash" >> new-manifest.txt
+          done
+          LC_ALL=C sort -o new-manifest.txt new-manifest.txt
+          echo "$(wc -l < new-manifest.txt) files in build output"
+
+      - name: Fetch previous manifest and diff
+        if: steps.check-secrets.outputs.ok == 'true'
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" -e "
+            set ftp:passive-mode true;
+            set cmd:fail-exit no;
+            get /.deploy-manifest.txt -o old-manifest.txt;
+            quit
+          " || true
+          [ -s old-manifest.txt ] || : > old-manifest.txt
+          LC_ALL=C sort -o old-manifest.txt old-manifest.txt
+
+          # lines present in new but not old = added or content-changed
+          LC_ALL=C comm -23 new-manifest.txt old-manifest.txt | cut -f1 > changed.txt
+
+          # paths that existed before but dropped out of this build = removed
+          cut -f1 old-manifest.txt | LC_ALL=C sort -u > old-paths.txt
+          cut -f1 new-manifest.txt | LC_ALL=C sort -u > new-paths.txt
+          LC_ALL=C comm -23 old-paths.txt new-paths.txt > removed.txt
+
+          echo "$(wc -l < changed.txt) changed/added, $(wc -l < removed.txt) removed, $(wc -l < new-manifest.txt) total in build"
+
+      - name: Deploy changed files via lftp
+        if: steps.check-secrets.outputs.ok == 'true'
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ ! -s changed.txt ] && [ ! -s removed.txt ]; then
+            echo "No content changes since last deploy — skipping upload."
+            exit 0
+          fi
+
+          {
+            echo 'set ftp:passive-mode true'
+            echo 'set cmd:fail-exit no'
+          } > lftp-script.txt
+
+          while IFS= read -r remote; do
+            [ -z "$remote" ] && continue
+            if [ "$remote" = "/.htaccess" ]; then
+              local="dist/.htaccess"
+            else
+              local="dist${remote#/htdocs}"
+            fi
+            dir="${remote%/*}"
+            [ -z "$dir" ] && dir="/"
+            printf 'mkdir -p -f "%s"\n' "$dir" >> lftp-script.txt
+            printf 'put -O "%s" "%s"\n' "$dir" "$local" >> lftp-script.txt
+          done < changed.txt
+
+          while IFS= read -r remote; do
+            [ -z "$remote" ] && continue
+            printf 'rm -f "%s"\n' "$remote" >> lftp-script.txt
+          done < removed.txt
+
+          {
+            printf 'put -o "/.deploy-manifest.txt" "new-manifest.txt"\n'
+            echo 'quit'
+          } >> lftp-script.txt
+
+          echo "----- lftp script -----"
+          cat lftp-script.txt
+          echo "------------------------"
+
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" -f lftp-script.txt
