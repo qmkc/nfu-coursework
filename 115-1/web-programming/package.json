@@ -2,16 +2,33 @@
   "name": "web-programming",
   "private": true,
   "version": "1.0.0",
+  "type": "module",
   "packageManager": "pnpm@11.25.0",
   "scripts": {
-    "lint:html": "htmlhint \"code/**/*.html\"",
-    "lint:css": "stylelint \"code/**/*.css\"",
-    "lint": "htmlhint \"code/**/*.html\" && stylelint \"code/**/*.css\""
+    "build": "php src/compile.php && vite build",
+    "dev": "pnpm run build && php8.3 -S 0.0.0.0:9000 -t dist dist/router.php",
+    "lint:html": "pnpm run build && htmlhint \"dist/**/*.html\"",
+    "lint:css": "stylelint \"public/**/*.css\"",
+    "lint:ts": "tsc --noEmit",
+    "lint": "pnpm run lint:html && pnpm run lint:css && pnpm run lint:ts"
   },
   "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
     "htmlhint": "^1.5.0",
     "prettier": "^3.9.6",
     "stylelint": "^16.9.0",
-    "stylelint-config-standard": "^36.0.1"
+    "stylelint-config-standard": "^36.0.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^9.4.0",
+    "@mui/material": "^9.4.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   }
 }

@@ -4,16 +4,48 @@ on:
   push:
     branches: [main]
     paths:
-      - '115-1/web-programming/code/**'
+      - '115-1/web-programming/src/**'
+      - '115-1/web-programming/public/**'
+      - '115-1/web-programming/composer.json'
+      - '115-1/web-programming/composer.lock'
+      - '115-1/web-programming/package.json'
+      - '115-1/web-programming/pnpm-lock.yaml'
   workflow_dispatch:
 
 jobs:
   ftp-deploy:
     name: FTP sync to InfinityFree
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 115-1/web-programming
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --optimize-autoloader
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: 115-1/web-programming/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (renders static routes + bundles src/ and vendor/ into dist/runtime/)
+        run: pnpm run --if-present build
 
       - name: Check FTP secrets
         id: check-secrets
@@ -25,13 +57,13 @@ jobs:
             echo "::warning::FTP_SERVER / FTP_USERNAME / FTP_PASSWORD not fully configured in repo secrets; skipping deploy."
           fi
 
-      - name: Sync files via FTP
+      - name: Sync dist/ via FTP
         if: steps.check-secrets.outputs.ok == 'true'
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: 115-1/web-programming/code/
+          local-dir: 115-1/web-programming/dist/
           server-dir: /htdocs/
-          state-name: ../.ftp-deploy-state.json
+          state-name: ../.ftp-deploy-state-public.json

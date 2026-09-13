@@ -1,0 +1,21 @@
+{
+  "name": "qmkc/web-programming",
+  "type": "project",
+  "autoload": {
+    "psr-4": {
+      "Qmkc\\WebProgramming\\": "src/"
+    }
+  },
+  "authors": [
+    {
+      "name": "qmkc",
+      "email": "hi@qmkc.dev",
+      "homepage": "https://github.com/qmkc"
+    }
+  ],
+  "require": {
+    "php": "^8.3",
+    "jenssegers/blade": "^2.0",
+    "abordage/html-min": "^1.0"
+  }
+}

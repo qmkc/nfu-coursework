@@ -1,0 +1,12 @@
+DirectoryIndex index.php index.html
+
+ErrorDocument 404 /404.html
+ErrorDocument 500 /500.html
+
+RewriteEngine On
+
+RewriteRule ^runtime/ - [F,L]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ router.php [QSA,L]

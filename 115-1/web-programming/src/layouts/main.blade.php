@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow, noarchive" />
+  <title>{{ $pageTitle }}</title>
+  <meta name="description" content="{{ $pageDescription }}" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous" />
+  <link href="/assets/css/style.css" rel="stylesheet" />
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-md site-nav">
+    <div class="container">
+      <a class="navbar-brand" href="/">
+        {{ $site['title'] }}
+        <span class="id">{{ $site['student_id'] }}</span>
+      </a>
+      @if($showSectionNav)
+        <div id="nav-menu-root" style="display:contents" data-github-user="{{ $site['github_user'] }}"></div>
+        <script type="module" src="/assets/js/nav-menu.js"></script>
+      @else
+        <div class="ms-auto">
+          <a class="btn-gh" href="https://github.com/{{ $site['github_user'] }}" target="_blank"
+            rel="noopener">GitHub ↗</a>
+        </div>
+      @endif
+    </div>
+  </nav>
+
+  <div class="container">
+    @yield('content')
+
+    <footer class="site-footer">
+      <span>© {{ $currentYear }} {{ $site['student_id'] }}</span>
+      <a href="https://github.com/{{ $site['github_user'] }}" target="_blank"
+        rel="noopener">github.com/{{ $site['github_user'] }}</a>
+    </footer>
+  </div>
+</body>
+
+</html>
