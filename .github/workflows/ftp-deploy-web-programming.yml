@@ -131,6 +131,20 @@ jobs:
             echo 'set cmd:fail-exit no'
           } > lftp-script.txt
 
+          : > dirs.txt
+          while IFS= read -r remote; do
+            [ -z "$remote" ] && continue
+            dir="${remote%/*}"
+            [ -z "$dir" ] && dir="/"
+            echo "$dir" >> dirs.txt
+          done < changed.txt
+          LC_ALL=C sort -u -o dirs.txt dirs.txt
+
+          while IFS= read -r dir; do
+            [ -z "$dir" ] && continue
+            printf 'mkdir -p -f "%s"\n' "$dir" >> lftp-script.txt
+          done < dirs.txt
+
           while IFS= read -r remote; do
             [ -z "$remote" ] && continue
             if [ "$remote" = "/.htaccess" ]; then
@@ -140,7 +154,6 @@ jobs:
             fi
             dir="${remote%/*}"
             [ -z "$dir" ] && dir="/"
-            printf 'mkdir -p -f "%s"\n' "$dir" >> lftp-script.txt
             printf 'put -O "%s" "%s"\n' "$dir" "$local" >> lftp-script.txt
           done < changed.txt
 
@@ -158,4 +171,22 @@ jobs:
           cat lftp-script.txt
           echo "------------------------"
 
+          set +e
           lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" -f lftp-script.txt
+          lftp_status=$?
+          set -e
+          echo "lftp exited with status $lftp_status (informational only — verifying below instead of trusting this directly)"
+
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" -e "
+            set ftp:passive-mode true;
+            set cmd:fail-exit no;
+            get /.deploy-manifest.txt -o uploaded-manifest.txt;
+            quit
+          " || true
+
+          if [ -s uploaded-manifest.txt ] && diff -q new-manifest.txt uploaded-manifest.txt > /dev/null; then
+            echo "Verified: server manifest matches this build. Deploy succeeded."
+          else
+            echo "::error::Deploy verification failed — server's .deploy-manifest.txt does not match the build just uploaded."
+            exit 1
+          fi
