@@ -59,18 +59,44 @@ lftp_quote() {
 
 validate_manifest() {
   local manifest="$1"
+
   awk -F '\t' '
-    NF != 2 { valid = 0; next }
-    $1 !~ /^\/htdocs(\/|$)/ { valid = 0; next }
-    $1 ~ /[\r\n\t]/ { valid = 0; next }
-    $2 !~ /^[0-9a-fA-F]{64}$/ { valid = 0; next }
-    END { exit(valid ? 0 : 1) }
+    NF != 2 {
+      valid = 0
+      next
+    }
+
+    $1 !~ /^\/htdocs(\/|$)/ {
+      valid = 0
+      next
+    }
+
+    $1 ~ /[\r\n\t]/ {
+      valid = 0
+      next
+    }
+
+    length($2) != 64 {
+      valid = 0
+      next
+    }
+
+    $2 !~ /^[0-9a-fA-F]+$/ {
+      valid = 0
+      next
+    }
+
+    END {
+      exit(valid ? 0 : 1)
+    }
   ' "$manifest"
 }
 
 generate_ftp_config() {
   local cmd_file="$1"
+
   : > "$cmd_file"
+
   {
     echo 'set ssl:verify-certificate false'
     echo 'set net:max-retries 2'
@@ -86,6 +112,7 @@ generate_ftp_config() {
 [ -n "$FTP_USER" ] || error_exit "FTP_USER not set"
 [ -n "$FTP_PASS" ] || error_exit "FTP_PASS not set"
 [ -d "dist" ] || error_exit "dist directory not found"
+
 find dist -type f -print -quit 2>/dev/null | grep -q . || error_exit "dist directory is empty"
 
 echo ""
@@ -97,12 +124,19 @@ file_count=0
 while IFS= read -r -d '' local_file; do
   relative_path="${local_file#dist/}"
   case "$relative_path" in
-    *$'\n'*|*$'\r'*|*$'\t'*) error_exit "Unsupported filename: $relative_path" ;;
+    *$'\n'*|*$'\r'*|*$'\t'*)
+      error_exit "Unsupported filename: $relative_path"
+      ;;
   esac
 
   hash="$(sha256sum -- "$local_file" | awk '{print $1}')"
-  [[ "$hash" =~ ^[0-9a-fA-F]{64}$ ]] || error_exit "Failed to hash: $local_file"
-  printf '%s\t%s\n' "${FTP_REMOTE_BASE}/${relative_path}" "$hash" >> "$TMP_LOCAL_MANIFEST"
+
+  [[ "$hash" =~ ^[0-9a-fA-F]{64}$ ]] || error_exit "Failed to calculate SHA-256: $local_file"
+
+  printf '%s\t%s\n' \
+    "${FTP_REMOTE_BASE}/${relative_path}" \
+    "$hash" >> "$TMP_LOCAL_MANIFEST"
+
   file_count=$((file_count + 1))
 done < <(find dist -type f -print0 2>/dev/null | LC_ALL=C sort -z)
 
@@ -117,6 +151,7 @@ echo "[2/5] Downloading remote manifest..."
 : > "$TMP_FTP_ERR"
 
 generate_ftp_config "$TMP_FTP_CMD"
+
 {
   printf 'get %s -o %s\n' \
     "$(lftp_quote "${FTP_REMOTE_BASE}/${MANIFEST_FILENAME}")" \
@@ -131,7 +166,9 @@ if lftp -f "$TMP_FTP_CMD" > /dev/null 2> "$TMP_FTP_ERR"; then
   validate_manifest "$TMP_REMOTE_MANIFEST" || error_exit "Remote manifest is invalid"
   remote_manifest_exists=true
   info "  Remote manifest found"
-elif grep -Eiq '550 .*([Nn]ot found|[Nn]o such file|[Ff]ile unavailable)|No such file|not found|file unavailable' "$TMP_FTP_ERR"; then
+elif grep -Eiq \
+  '550 .*([Nn]ot found|[Nn]o such file|[Ff]ile unavailable)|No such file|not found|file unavailable' \
+  "$TMP_FTP_ERR"; then
   info "  Remote manifest not found (assuming first deployment)"
 else
   echo "FTP error while downloading remote manifest:" >&2
@@ -213,10 +250,12 @@ remove_commands=0
 
   while IFS= read -r remote_dir; do
     [ -z "$remote_dir" ] && continue
+
     case "$remote_dir" in
       "$FTP_REMOTE_BASE"|"$FTP_REMOTE_BASE"/*) ;;
       *) error_exit "Invalid remote directory: $remote_dir" ;;
     esac
+
     printf 'mkdir -p -f %s\n' "$(lftp_quote "$remote_dir")"
   done <<< "$dir_list"
 
@@ -239,6 +278,7 @@ remove_commands=0
     printf 'put %s -o %s\n' \
       "$(lftp_quote "$local_path")" \
       "$(lftp_quote "$remote_path")"
+
     upload_commands=$((upload_commands + 1))
   done <<< "$upload_list"
 
@@ -272,6 +312,7 @@ echo ""
 echo "[5/5] Finalizing deployment with manifest..."
 
 generate_ftp_config "$TMP_FTP_CMD"
+
 {
   printf 'lcd %s\n' "$(lftp_quote "$(pwd)")"
   printf 'put %s -o %s\n' \
