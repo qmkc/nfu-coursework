@@ -10,22 +10,52 @@
 
   <div class="section-card">
     <h3><span class="tick">＃01</span>學習目標</h3>
-    <p class="placeholder mb-0">請填寫本週的學習目標...</p>
+    @if($weekDetail['objectives'] ?? null)
+      <ul class="mb-0">
+        @foreach($weekDetail['objectives'] as $objective)
+          <li>{{ $objective }}</li>
+        @endforeach
+      </ul>
+    @else
+      <p class="placeholder mb-0">請填寫本週的學習目標...</p>
+    @endif
   </div>
 
   <div class="section-card">
     <h3><span class="tick">＃02</span>成果展示</h3>
-    <p class="placeholder mb-0">放置圖片、影片、Demo 連結。</p>
+    @if($weekDetail['showcase'] ?? null)
+      <p class="{{ ($weekDetail['links'] ?? null) ? '' : 'mb-0' }}">{{ $weekDetail['showcase'] }}</p>
+    @else
+      <p class="placeholder mb-0">放置圖片、影片、Demo 連結。</p>
+    @endif
+    @if($weekDetail['links'] ?? null)
+      <ul class="mb-0">
+        @foreach($weekDetail['links'] as $link)
+          <li><a href="{{ $link['url'] }}" target="_blank" rel="noopener">{{ $link['label'] }}</a></li>
+        @endforeach
+      </ul>
+    @endif
   </div>
 
   <div class="section-card">
     <h3><span class="tick">＃03</span>程式碼</h3>
-    <pre><code>// 請貼上本週重點程式碼片段</code></pre>
+    @if($weekDetail['code']['snippet'] ?? null)
+      @if($weekDetail['code']['filename'] ?? null)
+        <p class="mb-0">{{ $weekDetail['code']['filename'] }}</p>
+      @endif
+      <pre><code>{{ $weekDetail['code']['snippet'] }}</code></pre>
+    @else
+      <pre><code>// 請貼上本週重點程式碼片段</code></pre>
+    @endif
   </div>
 
   <div class="section-card">
     <h3><span class="tick">＃04</span>學習心得</h3>
-    <p class="placeholder mb-0">請填寫本週的學習心得...</p>
+    @if($weekDetail['reflection'] ?? null)
+      <p class="mb-0">{{ $weekDetail['reflection'] }}</p>
+    @else
+      <p class="placeholder mb-0">請填寫本週的學習心得...</p>
+    @endif
   </div>
 
   @include('partials.week-nav', ['weekNo' => $weekNo, 'weekCount' => $weekCount])

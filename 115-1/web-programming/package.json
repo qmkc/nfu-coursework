@@ -42,6 +42,6 @@
       "dist"
     ],
     "delay": 300,
-    "exec": "php src/compile.php && node_modules/.bin/vite build && php8.3 -S 0.0.0.0:9000 -t dist dist/router.php"
+    "exec": "php src/compile.php && .\\node_modules\\.bin\\vite build && php -S 0.0.0.0:9000 -t dist dist/router.php"
   }
 }

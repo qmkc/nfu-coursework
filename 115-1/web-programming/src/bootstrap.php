@@ -11,6 +11,7 @@ $root = dirname(__DIR__);
 $site = require "{$root}/src/data/site.php";
 $content = require "{$root}/src/data/content.php";
 $weekThemes = require "{$root}/src/data/weeks.php";
+$weekContent = require "{$root}/src/data/week-content.php";
 $weekCount = $site['week_count'];
 $currentYear = date('Y');
 
@@ -29,6 +30,7 @@ return [
   'site' => $site,
   'content' => $content,
   'weekThemes' => $weekThemes,
+  'weekContent' => $weekContent,
   'weekCount' => $weekCount,
   'currentYear' => $currentYear,
   'blade' => $blade,
