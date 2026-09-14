@@ -9,9 +9,10 @@ FTP_PASS="${FTP_PASS:-}"
 FTP_REMOTE_BASE="/htdocs"
 MANIFEST_FILENAME=".deploy-manifest"
 
-TMP_LOCAL_MANIFEST=$(mktemp ./.tmp.manifest.local.XXXXXX)
-TMP_REMOTE_MANIFEST=$(mktemp ./.tmp.manifest.remote.XXXXXX)
-TMP_FTP_CMD=$(mktemp ./.tmp.ftp-cmd.XXXXXX)
+TMP_LOCAL_MANIFEST="$(mktemp ./.tmp.manifest.local.XXXXXX)"
+TMP_REMOTE_MANIFEST="$(mktemp ./.tmp.manifest.remote.XXXXXX)"
+TMP_FTP_CMD="$(mktemp ./.tmp.ftp-cmd.XXXXXX)"
+TMP_FTP_ERR="$(mktemp ./.tmp.ftp-err.XXXXXX)"
 
 upload_list=""
 remove_list=""
@@ -19,16 +20,10 @@ dir_list=""
 
 cleanup() {
   local exit_code=$?
-  rm -f "${TMP_LOCAL_MANIFEST}" "${TMP_REMOTE_MANIFEST}" "${TMP_FTP_CMD}"
-  return $exit_code
+  rm -f "$TMP_LOCAL_MANIFEST" "$TMP_REMOTE_MANIFEST" "$TMP_FTP_CMD" "$TMP_FTP_ERR"
+  return "$exit_code"
 }
 trap cleanup EXIT
-
-count_lines() {
-  local s="$1"
-  [ -z "$s" ] && { echo 0; return; }
-  printf '%s\n' "$s" | wc -l
-}
 
 error_exit() {
   echo "Error: $*" >&2
@@ -47,138 +42,151 @@ success() {
   echo "$*"
 }
 
-if [ -z "$FTP_HOST" ]; then
-  error_exit "FTP_HOST not set. Usage: FTP_HOST=... FTP_USER=... FTP_PASS=... ./scripts/ftp-deploy.sh"
-fi
+count_lines() {
+  local value="$1"
+  [ -z "$value" ] && { echo 0; return; }
+  printf '%s\n' "$value" | wc -l | tr -d ' '
+}
 
-if [ -z "$FTP_USER" ]; then
-  error_exit "FTP_USER not set. Usage: FTP_HOST=... FTP_USER=... FTP_PASS=... ./scripts/ftp-deploy.sh"
-fi
+lftp_quote() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//\$/\\\$}"
+  value="${value//\`/\\\`}"
+  printf '"%s"' "$value"
+}
 
-if [ -z "$FTP_PASS" ]; then
-  error_exit "FTP_PASS not set. Usage: FTP_HOST=... FTP_USER=... FTP_PASS=... ./scripts/ftp-deploy.sh"
-fi
-
-if [ ! -d "dist" ]; then
-  error_exit "dist directory not found. Please build your project first."
-fi
-
-if [ ! "$(find dist -type f 2>/dev/null | wc -l)" -gt 0 ]; then
-  error_exit "dist directory is empty. Please build your project first."
-fi
+validate_manifest() {
+  local manifest="$1"
+  awk -F '\t' '
+    NF != 2 { valid = 0; next }
+    $1 !~ /^\/htdocs(\/|$)/ { valid = 0; next }
+    $1 ~ /[\r\n\t]/ { valid = 0; next }
+    $2 !~ /^[0-9a-fA-F]{64}$/ { valid = 0; next }
+    END { exit(valid ? 0 : 1) }
+  ' "$manifest"
+}
 
 generate_ftp_config() {
   local cmd_file="$1"
   : > "$cmd_file"
-  cat >> "$cmd_file" << EOF
-set ssl:verify-certificate false
-set net:max-retries 2
-set net:timeout 10
-set xfer:clobber on
-open ${FTP_HOST}
-user ${FTP_USER} ${FTP_PASS}
-EOF
+  {
+    echo 'set ssl:verify-certificate false'
+    echo 'set net:max-retries 2'
+    echo 'set net:timeout 10'
+    echo 'set xfer:clobber on'
+    echo 'set cmd:fail-exit true'
+    printf 'open %s\n' "$(lftp_quote "$FTP_HOST")"
+    printf 'user %s %s\n' "$(lftp_quote "$FTP_USER")" "$(lftp_quote "$FTP_PASS")"
+  } >> "$cmd_file"
 }
+
+[ -n "$FTP_HOST" ] || error_exit "FTP_HOST not set"
+[ -n "$FTP_USER" ] || error_exit "FTP_USER not set"
+[ -n "$FTP_PASS" ] || error_exit "FTP_PASS not set"
+[ -d "dist" ] || error_exit "dist directory not found"
+find dist -type f -print -quit 2>/dev/null | grep -q . || error_exit "dist directory is empty"
 
 echo ""
 echo "[1/5] Generating local manifest..."
 
-: > "${TMP_LOCAL_MANIFEST}"
+: > "$TMP_LOCAL_MANIFEST"
 file_count=0
 
 while IFS= read -r -d '' local_file; do
   relative_path="${local_file#dist/}"
-  remote_path="${FTP_REMOTE_BASE}/${relative_path}"
+  case "$relative_path" in
+    *$'\n'*|*$'\r'*|*$'\t'*) error_exit "Unsupported filename: $relative_path" ;;
+  esac
 
-  hash=$(sha256sum -- "$local_file" | awk '{print $1}') || error_exit "Failed to hash $local_file"
-  [ -n "$hash" ] || error_exit "Failed to hash $local_file"
-
-  printf '%s\t%s\n' "$remote_path" "$hash" >> "${TMP_LOCAL_MANIFEST}"
+  hash="$(sha256sum -- "$local_file" | awk '{print $1}')"
+  [[ "$hash" =~ ^[0-9a-fA-F]{64}$ ]] || error_exit "Failed to hash: $local_file"
+  printf '%s\t%s\n' "${FTP_REMOTE_BASE}/${relative_path}" "$hash" >> "$TMP_LOCAL_MANIFEST"
   file_count=$((file_count + 1))
 done < <(find dist -type f -print0 2>/dev/null | LC_ALL=C sort -z)
 
-LC_ALL=C sort -o "${TMP_LOCAL_MANIFEST}" "${TMP_LOCAL_MANIFEST}"
-
+LC_ALL=C sort -o "$TMP_LOCAL_MANIFEST" "$TMP_LOCAL_MANIFEST"
+validate_manifest "$TMP_LOCAL_MANIFEST" || error_exit "Generated local manifest is invalid"
 info "  Found $file_count files in build output"
-
-if [ "$file_count" -eq 0 ]; then
-  error_exit "No files found in dist directory"
-fi
 
 echo ""
 echo "[2/5] Downloading remote manifest..."
 
-: > "${TMP_REMOTE_MANIFEST}"
+: > "$TMP_REMOTE_MANIFEST"
+: > "$TMP_FTP_ERR"
 
-generate_ftp_config "${TMP_FTP_CMD}"
-cat >> "${TMP_FTP_CMD}" << EOF
-get ${FTP_REMOTE_BASE}/${MANIFEST_FILENAME} -o ${TMP_REMOTE_MANIFEST}
-bye
-EOF
+generate_ftp_config "$TMP_FTP_CMD"
+{
+  printf 'get %s -o %s\n' \
+    "$(lftp_quote "${FTP_REMOTE_BASE}/${MANIFEST_FILENAME}")" \
+    "$(lftp_quote "$TMP_REMOTE_MANIFEST")"
+  echo "bye"
+} >> "$TMP_FTP_CMD"
 
 remote_manifest_exists=false
-if lftp -f "${TMP_FTP_CMD}" > /dev/null 2>&1; then
+
+if lftp -f "$TMP_FTP_CMD" > /dev/null 2> "$TMP_FTP_ERR"; then
+  [ -s "$TMP_REMOTE_MANIFEST" ] || error_exit "Remote manifest is empty"
+  validate_manifest "$TMP_REMOTE_MANIFEST" || error_exit "Remote manifest is invalid"
   remote_manifest_exists=true
   info "  Remote manifest found"
+elif grep -Eiq '550 .*([Nn]ot found|[Nn]o such file|[Ff]ile unavailable)|No such file|not found|file unavailable' "$TMP_FTP_ERR"; then
+  info "  Remote manifest not found (assuming first deployment)"
 else
-  warn "No remote manifest found (assuming first deployment)"
-fi
-
-if [ ! -s "${TMP_REMOTE_MANIFEST}" ]; then
-  : > "${TMP_REMOTE_MANIFEST}"
+  echo "FTP error while downloading remote manifest:" >&2
+  sed 's/^/  /' "$TMP_FTP_ERR" >&2
+  error_exit "Failed to download remote manifest"
 fi
 
 echo ""
 echo "[3/5] Computing file differences..."
 
-if [ "$remote_manifest_exists" = true ] && [ -s "${TMP_REMOTE_MANIFEST}" ]; then
-  if upload_list=$(comm -23 <(LC_ALL=C sort "${TMP_LOCAL_MANIFEST}") \
-  <(LC_ALL=C sort "${TMP_REMOTE_MANIFEST}") \
-  | cut -f1); then
-    changed_count=$(count_lines "$upload_list")
-    info "  Found $changed_count changed/new files"
-  else
-    warn "Failed to compute differences, will upload all files"
-    upload_list=$(cut -f1 < "${TMP_LOCAL_MANIFEST}")
-  fi
+if [ "$remote_manifest_exists" = true ]; then
+  upload_list="$(
+    comm -23 \
+      <(LC_ALL=C sort "$TMP_LOCAL_MANIFEST") \
+      <(LC_ALL=C sort "$TMP_REMOTE_MANIFEST") |
+      cut -f1
+  )"
 
-  if remove_list=$(comm -23 <(cut -f1 "${TMP_REMOTE_MANIFEST}" | LC_ALL=C sort -u) \
-  <(cut -f1 "${TMP_LOCAL_MANIFEST}" | LC_ALL=C sort -u)); then
-    removed_count=$(count_lines "$remove_list")
-    info "  Found $removed_count files removed locally"
-  else
-    warn "Failed to compute removed files, skipping remote cleanup"
-    remove_list=""
-  fi
+  remove_list="$(
+    comm -23 \
+      <(cut -f1 "$TMP_REMOTE_MANIFEST" | LC_ALL=C sort -u) \
+      <(cut -f1 "$TMP_LOCAL_MANIFEST" | LC_ALL=C sort -u)
+  )"
+
+  info "  Found $(count_lines "$upload_list") changed/new files"
+  info "  Found $(count_lines "$remove_list") files removed locally"
 else
-  upload_list=$(cut -f1 < "${TMP_LOCAL_MANIFEST}")
+  upload_list="$(cut -f1 "$TMP_LOCAL_MANIFEST")"
+  remove_list=""
   info "  First deployment: will upload all $file_count files"
 fi
 
-if [ -z "$upload_list" ] && [ -z "$remove_list" ]; then
+upload_list="$(printf '%s\n' "$upload_list" | sed '/^$/d')"
+remove_list="$(printf '%s\n' "$remove_list" | sed '/^$/d')"
+
+upload_count="$(count_lines "$upload_list")"
+removed_count="$(count_lines "$remove_list")"
+
+if [ "$upload_count" -eq 0 ] && [ "$removed_count" -eq 0 ]; then
   echo ""
   success "No changes detected - remote is already synchronized"
   exit 0
 fi
 
-upload_count=$(count_lines "$upload_list")
-removed_count=$(count_lines "$remove_list")
-
 if [ "$upload_count" -gt 0 ]; then
   info "  Will upload $upload_count files:"
-  # mapfile + printf (both builtins, no pipe) instead of `... | head -5`:
-  # piping a long printf into head makes head exit as soon as it has its 5
-  # lines, and printf then dies with SIGPIPE trying to write the rest -
-  # which, under pipefail + set -e, aborts the whole script right here.
-  mapfile -t upload_preview <<< "$upload_list"
-  printf '      %s\n' "${upload_preview[@]:0:5}"
+  mapfile -t preview <<< "$upload_list"
+  printf '      %s\n' "${preview[@]:0:5}"
   [ "$upload_count" -gt 5 ] && info "      ... and $((upload_count - 5)) more"
 fi
 
 if [ "$removed_count" -gt 0 ]; then
-  info "  Will remove $removed_count files from remote:"
-  mapfile -t remove_preview <<< "$remove_list"
-  printf '      %s\n' "${remove_preview[@]:0:5}"
+  info "  Will remove $removed_count files:"
+  mapfile -t preview <<< "$remove_list"
+  printf '      %s\n' "${preview[@]:0:5}"
   [ "$removed_count" -gt 5 ] && info "      ... and $((removed_count - 5)) more"
 fi
 
@@ -186,39 +194,41 @@ echo ""
 echo "[4/5] Syncing files to ${FTP_HOST}..."
 
 if [ "$upload_count" -gt 0 ]; then
-  dir_list=$(printf '%s\n' "$upload_list" | while IFS= read -r remote_path; do
-    [ -z "$remote_path" ] && continue
-    dirname -- "$remote_path"
-  done | LC_ALL=C sort -u | awk '
-    { line[NR] = $0 }
-    END {
-      for (i = 1; i <= NR; i++) {
-        if (i < NR && index(line[i+1], line[i] "/") == 1) continue
-        print line[i]
-      }
-    }
-  ')
+  dir_list="$(
+    while IFS= read -r remote_path; do
+      [ -z "$remote_path" ] || dirname -- "$remote_path"
+    done <<< "$upload_list" |
+      LC_ALL=C sort -u
+  )"
 fi
 
-generate_ftp_config "${TMP_FTP_CMD}"
+generate_ftp_config "$TMP_FTP_CMD"
 
 local_file_missing=0
 upload_commands=0
 remove_commands=0
 
 {
-  echo "lcd $(pwd)"
+  printf 'lcd %s\n' "$(lftp_quote "$(pwd)")"
 
   while IFS= read -r remote_dir; do
     [ -z "$remote_dir" ] && continue
-    [ "$remote_dir" = "${FTP_REMOTE_BASE}" ] && continue
-    printf 'mkdir -p -f "%s"\n' "$remote_dir"
+    case "$remote_dir" in
+      "$FTP_REMOTE_BASE"|"$FTP_REMOTE_BASE"/*) ;;
+      *) error_exit "Invalid remote directory: $remote_dir" ;;
+    esac
+    printf 'mkdir -p -f %s\n' "$(lftp_quote "$remote_dir")"
   done <<< "$dir_list"
 
   while IFS= read -r remote_path; do
     [ -z "$remote_path" ] && continue
 
-    local_path="dist${remote_path#"${FTP_REMOTE_BASE}"}"
+    case "$remote_path" in
+      "$FTP_REMOTE_BASE"/*) ;;
+      *) error_exit "Invalid remote path: $remote_path" ;;
+    esac
+
+    local_path="dist${remote_path#"$FTP_REMOTE_BASE"}"
 
     if [ ! -f "$local_path" ]; then
       warn "Local file missing: $local_path (skipping)"
@@ -226,25 +236,34 @@ remove_commands=0
       continue
     fi
 
-    printf 'put "%s" -o "%s"\n' "$local_path" "$remote_path"
+    printf 'put %s -o %s\n' \
+      "$(lftp_quote "$local_path")" \
+      "$(lftp_quote "$remote_path")"
     upload_commands=$((upload_commands + 1))
   done <<< "$upload_list"
 
   while IFS= read -r remote_path; do
     [ -z "$remote_path" ] && continue
-    printf 'rm -f "%s"\n' "$remote_path"
+
+    case "$remote_path" in
+      "$FTP_REMOTE_BASE"/*) ;;
+      *) error_exit "Invalid remote path: $remote_path" ;;
+    esac
+
+    printf 'rm -f %s\n' "$(lftp_quote "$remote_path")"
     remove_commands=$((remove_commands + 1))
   done <<< "$remove_list"
 
   echo "bye"
-} >> "${TMP_FTP_CMD}"
+} >> "$TMP_FTP_CMD"
 
-if [ "$local_file_missing" -gt 0 ]; then
-  warn "Skipped $local_file_missing missing local files"
-fi
+[ "$upload_count" -eq 0 ] || [ "$upload_commands" -gt 0 ] ||
+  error_exit "No upload commands were generated"
 
-if ! lftp -f "${TMP_FTP_CMD}"; then
-  error_exit "File sync failed - deployment interrupted. Remote manifest not updated, safe to retry."
+[ "$local_file_missing" -eq 0 ] || warn "Skipped $local_file_missing missing local files"
+
+if ! lftp -f "$TMP_FTP_CMD"; then
+  error_exit "File sync failed. Remote manifest was not updated; safe to retry."
 fi
 
 info "  Uploaded $upload_commands files, removed $remove_commands files"
@@ -252,20 +271,22 @@ info "  Uploaded $upload_commands files, removed $remove_commands files"
 echo ""
 echo "[5/5] Finalizing deployment with manifest..."
 
-generate_ftp_config "${TMP_FTP_CMD}"
+generate_ftp_config "$TMP_FTP_CMD"
 {
-  echo "lcd $(pwd)"
-  printf 'put "%s" -o "%s"\n' "${TMP_LOCAL_MANIFEST}" "${FTP_REMOTE_BASE}/${MANIFEST_FILENAME}"
+  printf 'lcd %s\n' "$(lftp_quote "$(pwd)")"
+  printf 'put %s -o %s\n' \
+    "$(lftp_quote "$TMP_LOCAL_MANIFEST")" \
+    "$(lftp_quote "${FTP_REMOTE_BASE}/${MANIFEST_FILENAME}")"
   echo "bye"
-} >> "${TMP_FTP_CMD}"
+} >> "$TMP_FTP_CMD"
 
-if ! lftp -f "${TMP_FTP_CMD}"; then
-  error_exit "Manifest upload failed - files synced but manifest not updated. Safe to retry (will resume from checkpoint)."
+if ! lftp -f "$TMP_FTP_CMD"; then
+  error_exit "Manifest upload failed. Files were synced but manifest was not updated; safe to retry."
 fi
 
 echo ""
 success "Deployment completed successfully!"
-info "  Uploaded: $upload_count files"
-info "  Removed: $removed_count files"
+info "  Uploaded: $upload_commands files"
+info "  Removed: $remove_commands files"
 info "  Manifest updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 echo ""
