@@ -28,7 +28,9 @@
         <div id="nav-menu-root" style="display:contents" data-github-user="{{ $site['github_user'] }}"></div>
         <script type="module" src="/assets/js/nav-menu.js"></script>
       @else
-        <div class="ms-auto">
+        <div class="ms-auto d-flex align-items-center gap-1">
+          <a class="nav-link" href="/about/">關於我</a>
+          <a class="nav-link" href="/source/">原始碼</a>
           <a class="btn-gh" href="https://github.com/{{ $site['github_user'] }}" target="_blank" rel="noopener">GitHub
             ↗</a>
         </div>

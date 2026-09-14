@@ -94,6 +94,17 @@ copyDir($publicPath, $distPath);
 copyDir("{$root}/src", "{$distPath}/runtime/src");
 copyDir("{$root}/vendor", "{$distPath}/runtime/vendor");
 
+// 「原始碼瀏覽頁」白名單裡的檔案不一定都在 src/ 底下（例如 scripts/ftp-deploy.sh），
+// src/ 與 vendor/ 以外、白名單有登記的檔案要另外複製進 runtime，正式環境才讀得到。
+foreach ($app['sourceFiles'] ?? [] as $entry) {
+  $sourcePath = "{$root}/{$entry['path']}";
+  $targetPath = "{$distPath}/runtime/{$entry['path']}";
+  if (is_file($sourcePath) && !is_file($targetPath)) {
+    ensureDir(dirname($targetPath));
+    copy($sourcePath, $targetPath);
+  }
+}
+
 $router = new Router($app);
 $router->loadPages("{$root}/src/app");
 

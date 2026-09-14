@@ -2,7 +2,7 @@
 
 return [
   1 => '課程環境建置與 GitHub Actions FTP 自動化部署',
-  2 => null,
+  2 => 'About Me 頁面與原始碼瀏覽頁',
   3 => null,
   4 => null,
   5 => null,

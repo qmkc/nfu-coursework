@@ -14,6 +14,11 @@ const SECTIONS = [
   { id: 'reflection', label: '學習反思' },
 ] as const;
 
+const PAGE_LINKS = [
+  { href: '/about/', label: '關於我' },
+  { href: '/source/', label: '原始碼' },
+] as const;
+
 /** Highlights whichever section is currently crossing the middle of the viewport. */
 function useActiveSection(): string {
   const [activeSection, setActiveSection] = useState<string>(SECTIONS[0].id);
@@ -53,6 +58,13 @@ function NavLinks({ activeSection, onNavigate }: { activeSection: string; onNavi
             href={`#${id}`}
             aria-current={id === activeSection ? 'true' : undefined}
           >
+            {label}
+          </a>
+        </li>
+      ))}
+      {PAGE_LINKS.map(({ href, label }) => (
+        <li className="nav-item" key={href}>
+          <a className="nav-link" href={href}>
             {label}
           </a>
         </li>
