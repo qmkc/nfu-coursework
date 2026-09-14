@@ -59,37 +59,12 @@ lftp_quote() {
 
 validate_manifest() {
   local manifest="$1"
+  local path hash
 
-  awk -F '\t' '
-    NF != 2 {
-      valid = 0
-      next
-    }
-
-    $1 !~ /^\/htdocs(\/|$)/ {
-      valid = 0
-      next
-    }
-
-    $1 ~ /[\r\n\t]/ {
-      valid = 0
-      next
-    }
-
-    length($2) != 64 {
-      valid = 0
-      next
-    }
-
-    $2 !~ /^[0-9a-fA-F]+$/ {
-      valid = 0
-      next
-    }
-
-    END {
-      exit(valid ? 0 : 1)
-    }
-  ' "$manifest"
+  while IFS=$'\t' read -r path hash; do
+    [[ "$path" == "$FTP_REMOTE_BASE"/* ]] || return 1
+    [[ "$hash" =~ ^[0-9a-fA-F]{64}$ ]] || return 1
+  done < "$manifest"
 }
 
 generate_ftp_config() {
