@@ -43,7 +43,11 @@
       @if($weekDetail['code']['filename'] ?? null)
         <p class="mb-0">{{ $weekDetail['code']['filename'] }}</p>
       @endif
-      <pre><code>{{ $weekDetail['code']['snippet'] }}</code></pre>
+      @if(str_starts_with($weekDetail['code']['snippet'], 'http'))
+        <p class="mb-0"><a href="{{ $weekDetail['code']['snippet'] }}" target="_blank" rel="noopener">{{ $weekDetail['code']['snippet'] }}</a></p>
+      @else
+        <pre><code>{{ $weekDetail['code']['snippet'] }}</code></pre>
+      @endif
     @else
       <pre><code>// 請貼上本週重點程式碼片段</code></pre>
     @endif
