@@ -1,0 +1,719 @@
+// ------------------------------------------------------------------
+// Bootstrap overrides (must come before the bootstrap import)
+// ------------------------------------------------------------------
+$primary: #7f5af0;
+$dark: #05050a;
+$body-bg: #05050a;
+$body-color: #e8e8f0;
+$font-family-sans-serif:
+  "SF Pro Display",
+  "Segoe UI",
+  "Noto Sans TC",
+  system-ui,
+  -apple-system,
+  sans-serif;
+$enable-shadows: true;
+
+@import "bootstrap/scss/bootstrap";
+@import "bootstrap-icons/font/bootstrap-icons.css";
+
+// ------------------------------------------------------------------
+// Design tokens
+// ------------------------------------------------------------------
+:root {
+  --accent: #d8b26b;
+  --accent-2: #f4dca0;
+  --glow: 216, 178, 106;
+}
+
+* {
+  scroll-behavior: smooth;
+}
+
+body {
+  position: relative;
+  background:
+    radial-gradient(
+      circle at 15% 10%,
+      rgba(127, 90, 240, 0.18),
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 85% 0%,
+      rgba(44, 177, 255, 0.15),
+      transparent 40%
+    ),
+    #05050a;
+  overflow-x: hidden;
+}
+
+// Subtle film-grain texture for a more premium, less "flat CSS" surface.
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.text-gradient {
+  background: linear-gradient(
+    90deg,
+    #f5f5ff 0%,
+    var(--accent) 45%,
+    var(--accent-2) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shine 6s linear infinite;
+}
+
+@keyframes shine {
+  to {
+    background-position: 200% center;
+  }
+}
+
+// ------------------------------------------------------------------
+// Navbar
+// ------------------------------------------------------------------
+.navbar-glass {
+  background: rgba(5, 5, 10, 0.55);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition:
+    padding 0.3s ease,
+    background 0.3s ease;
+
+  .navbar-brand {
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .nav-link {
+    position: relative;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.92rem;
+    transition: color 0.2s ease;
+
+    &::after {
+      content: "";
+      position: absolute;
+      left: 0.5rem;
+      right: 100%;
+      bottom: 0.15rem;
+      height: 2px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: right 0.3s ease;
+    }
+
+    &:hover,
+    &.active {
+      color: #fff;
+    }
+
+    &:hover::after,
+    &.active::after {
+      right: 0.5rem;
+    }
+  }
+
+  &.scrolled {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    background: rgba(5, 5, 10, 0.85);
+    box-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.7);
+  }
+}
+
+.btn-glow {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 0 25px -5px rgba(var(--glow), 0.8);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px -5px rgba(var(--glow), 0.9);
+    color: #fff;
+  }
+}
+
+.btn-outline-glow {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.04);
+  transition: all 0.25s ease;
+
+  &:hover {
+    border-color: var(--accent-2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+}
+
+// ------------------------------------------------------------------
+// Hero
+// ------------------------------------------------------------------
+.hero {
+  position: relative;
+  padding-top: 8rem;
+  padding-bottom: 4rem;
+  min-height: 92vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.55;
+  z-index: 0;
+  animation: float 12s ease-in-out infinite;
+}
+
+.blob-1 {
+  width: 420px;
+  height: 420px;
+  top: -120px;
+  left: -100px;
+  background: var(--accent);
+}
+
+.blob-2 {
+  width: 380px;
+  height: 380px;
+  bottom: -140px;
+  right: -80px;
+  background: var(--accent-2);
+  animation-delay: -4s;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(30px, -25px) scale(1.08);
+  }
+}
+
+.badge-pill-glass {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(6px);
+  color: #cfcfe8;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.9rem;
+  border-radius: 50rem;
+}
+
+.hero h1 {
+  font-size: clamp(2.6rem, 6vw, 5rem);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+}
+
+.hero-lead {
+  color: #b3b3c8;
+  max-width: 34rem;
+}
+
+// ------------------------------------------------------------------
+// Interactive 3D model — a real, textured glTF of the device rendered
+// live with Three.js (not <model-viewer>, not a CSS approximation):
+// draggable orbit, programmatic material color, screen textures and
+// choreographed camera moves, all driven from scene.ts.
+// ------------------------------------------------------------------
+.model-stage {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+}
+
+#duoCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+#duoCanvas:active {
+  cursor: grabbing;
+}
+
+.model-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.model-loading.is-hidden {
+  opacity: 0;
+}
+
+.model-glow {
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 50%;
+  width: 70%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--glow), 0.45), transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+.camera-btn {
+  width: 2.4rem;
+  height: 2.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+// ------------------------------------------------------------------
+// Real product photography, presented on a soft "museum card" —
+// these are genuine Apple studio shots on white backdrops, and this
+// site is dark-themed, so instead of dumping a white rectangle onto a
+// dark hero (or faking a device out of divs) each photo sits on an
+// elevated light panel that intentionally contrasts with the page,
+// with the accent glow bleeding out from behind it.
+// ------------------------------------------------------------------
+.photo-card {
+  position: relative;
+  background: linear-gradient(160deg, #fdfdfb, #eae7dd);
+  border-radius: 28px;
+  padding: 1.75rem;
+  box-shadow:
+    0 40px 90px -25px rgba(0, 0, 0, 0.7),
+    0 0 90px -15px rgba(var(--glow), 0.55);
+  transition: box-shadow 0.6s ease;
+}
+
+.photo-card--tight {
+  padding: 1.25rem;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.photo-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1400 / 927;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.phone-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.9s ease;
+}
+
+.phone-photo.active {
+  opacity: 1;
+}
+
+.photo-card-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+}
+
+.photo-caption {
+  margin: 1rem 0 0;
+  text-align: center;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: #7a7a70;
+}
+
+.fold-btn.active {
+  border-color: var(--accent-2);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+// ------------------------------------------------------------------
+// Color swatches
+// ------------------------------------------------------------------
+.color-swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+.color-swatch:hover {
+  transform: scale(1.12);
+}
+
+.color-swatch.active {
+  border-color: #fff;
+  transform: scale(1.15);
+}
+
+// ------------------------------------------------------------------
+// Marquee stats strip
+// ------------------------------------------------------------------
+.marquee {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 1rem 0;
+}
+
+.marquee-track {
+  display: inline-flex;
+  gap: 3rem;
+  animation: marquee 22s linear infinite;
+}
+
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+.marquee-track span {
+  font-size: 1rem;
+  color: #9c9cbf;
+  letter-spacing: 0.03em;
+}
+
+.marquee-track span i {
+  color: var(--accent-2);
+  margin-right: 0.5rem;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+// ------------------------------------------------------------------
+// Reveal-on-scroll
+// ------------------------------------------------------------------
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition:
+    opacity 0.8s ease,
+    transform 0.8s ease;
+}
+
+.reveal.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+// ------------------------------------------------------------------
+// Feature cards
+// ------------------------------------------------------------------
+.feature-card {
+  position: relative;
+  --mx: 50%;
+  --my: 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.015)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.5rem;
+  padding: 2.2rem 1.8rem;
+  height: 100%;
+  overflow: hidden;
+  transition:
+    transform 0.35s ease,
+    border-color 0.35s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-8px);
+  border-color: rgba(var(--glow), 0.5);
+}
+
+// Cursor-following spotlight glow, tracked via --mx/--my in main.js.
+.feature-card > .spotlight {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    220px circle at var(--mx) var(--my),
+    rgba(var(--glow), 0.22),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.feature-card:hover > .spotlight {
+  opacity: 1;
+}
+
+.feature-card .icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 10px 25px -8px rgba(var(--glow), 0.7);
+  margin-bottom: 1.2rem;
+}
+
+.feature-card::before {
+  content: "";
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(circle, rgba(var(--glow), 0.35), transparent 70%);
+  top: -60px;
+  right: -60px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+// ------------------------------------------------------------------
+// Lifestyle banner (parallax photo band)
+// ------------------------------------------------------------------
+.img-banner {
+  position: relative;
+  min-height: 42vh;
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.img-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(5, 5, 10, 0.75),
+      rgba(5, 5, 10, 0.55) 40%,
+      rgba(5, 5, 10, 0.85)
+    ),
+    radial-gradient(circle at 50% 50%, rgba(var(--glow), 0.25), transparent 65%);
+}
+
+@media (max-width: 767.98px) {
+  .img-banner {
+    background-attachment: scroll;
+    min-height: 32vh;
+  }
+}
+
+// ------------------------------------------------------------------
+// Specs table
+// ------------------------------------------------------------------
+.specs-table {
+  --bs-table-bg: transparent;
+  --bs-table-color: #d8d8ea;
+  border-color: rgba(255, 255, 255, 0.08);
+
+  th,
+  td {
+    border-color: rgba(255, 255, 255, 0.08);
+    vertical-align: middle;
+  }
+
+  thead th {
+    color: #fff;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .table-highlight {
+    background: rgba(var(--glow), 0.08);
+  }
+}
+
+// ------------------------------------------------------------------
+// Pricing cards
+// ------------------------------------------------------------------
+.price-card {
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 2.5rem 2rem;
+  height: 100%;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.price-card.featured {
+  border-color: var(--accent);
+  background: linear-gradient(
+    180deg,
+    rgba(var(--glow), 0.12),
+    rgba(255, 255, 255, 0.02)
+  );
+  box-shadow: 0 25px 60px -20px rgba(var(--glow), 0.6);
+}
+
+.price-card:hover {
+  transform: translateY(-6px);
+}
+
+// ------------------------------------------------------------------
+// Carousel / gallery
+// ------------------------------------------------------------------
+// Real studio photos on white backdrops get the same light-card
+// treatment as .photo-card, rather than a dark cover-crop + gradient
+// wash built for moody lifestyle photography.
+.gallery-slide {
+  position: relative;
+  height: 440px;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  background: linear-gradient(160deg, #fdfdfb, #eae7dd);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.gallery-slide img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.gallery-caption {
+  position: absolute;
+  left: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 2;
+  background: rgba(20, 18, 10, 0.08);
+  color: #3a362c;
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  padding: 0.4rem 0.9rem;
+  border-radius: 50rem;
+}
+
+// Default Bootstrap arrows are white SVGs meant for dark backdrops;
+// the gallery card is light, so invert them to read dark-on-light.
+#gallery .carousel-control-prev-icon,
+#gallery .carousel-control-next-icon {
+  filter: invert(1);
+  background-color: rgba(20, 18, 10, 0.08);
+  border-radius: 50%;
+  padding: 1.2rem;
+  background-size: 45%;
+}
+
+// ------------------------------------------------------------------
+// Accordion (FAQ)
+// ------------------------------------------------------------------
+.accordion-glass {
+  .accordion-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1rem !important;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+  }
+
+  .accordion-button {
+    background: transparent;
+    color: #fff;
+    font-weight: 600;
+
+    &:not(.collapsed) {
+      background: rgba(var(--glow), 0.12);
+      color: #fff;
+      box-shadow: none;
+    }
+
+    &::after {
+      filter: invert(1);
+    }
+  }
+
+  .accordion-body {
+    color: #b3b3c8;
+  }
+}
+
+// ------------------------------------------------------------------
+// Footer
+// ------------------------------------------------------------------
+footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: #8a8aa8;
+}
+
+// ------------------------------------------------------------------
+// Section spacing helper
+// ------------------------------------------------------------------
+.section {
+  padding: 6rem 0;
+}
+
+@media (max-width: 767.98px) {
+  .section {
+    padding: 4rem 0;
+  }
+}
