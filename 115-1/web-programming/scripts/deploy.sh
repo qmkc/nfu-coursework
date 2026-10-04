@@ -285,8 +285,6 @@ ENDPOINT_UPLOADED=true
 
 info "  Endpoint: ${ENDPOINT_URL} (fresh random name, removed again before this script exits)"
 
-sleep 10
-
 echo ""
 echo "[2/5] Diffing out/ against the endpoint's manifest..."
 
