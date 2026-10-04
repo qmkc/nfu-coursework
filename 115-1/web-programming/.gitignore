@@ -4,3 +4,4 @@ node_modules/
 *.tsbuildinfo
 .venv/
 __pycache__/
+/scripts/.deploy-state/secret.php

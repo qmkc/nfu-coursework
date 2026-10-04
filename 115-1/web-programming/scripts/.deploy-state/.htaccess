@@ -1,0 +1,11 @@
+# This directory holds the deploy secret, the deploy manifest, and
+# in-progress chunk uploads for the deploy endpoint (scripts/deploy-endpoint.php,
+# uploaded under a random filename - see scripts/deploy.sh). None of it is
+# meant to be fetched directly over HTTP.
+Require all denied
+
+# Apache 2.2 fallback (InfinityFree has historically run both).
+<IfModule !mod_authz_core.c>
+  Order deny,allow
+  Deny from all
+</IfModule>

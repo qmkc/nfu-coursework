@@ -1,3 +1,15 @@
 DirectoryIndex index.html
 
 ErrorDocument 404 /404.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Large files get split into chunks at deploy time (see
+  # public/api/deploy.php / public/api/merge.php). If the original path
+  # doesn't exist on disk but a split manifest does, transparently serve
+  # it through merge.php instead of 404ing.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME}.split.json -f
+  RewriteRule ^(.*)$ /api/merge.php?path=$1 [L,QSA]
+</IfModule>

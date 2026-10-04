@@ -11,7 +11,8 @@ on:
       - '115-1/web-programming/tsconfig.json'
       - '115-1/web-programming/package.json'
       - '115-1/web-programming/pnpm-lock.yaml'
-      - '115-1/web-programming/scripts/ftp-deploy.sh'
+      - '115-1/web-programming/scripts/deploy.sh'
+      - '115-1/web-programming/scripts/deploy-endpoint.php'
   workflow_dispatch:
 
 concurrency:
