@@ -51,7 +51,7 @@ jobs:
       - name: Check deploy secrets
         id: check-secrets
         run: |
-          if [ -n "${{ secrets.FTP_SERVER }}" ] && [ -n "${{ secrets.FTP_USERNAME }}" ] && [ -n "${{ secrets.FTP_PASSWORD }}" ] && [ -n "${{ secrets.DEPLOY_TOKEN }}" ] && [ -n "${{ secrets.SITE_URL }}" ]; then
+          if [ -n "${{ secrets.FTP_SERVER }}" ] && [ -n "${{ secrets.FTP_USERNAME }}" ] && [ -n "${{ secrets.FTP_PASSWORD }}" ] && [ -n "${{ secrets.DEPLOY_TOKEN }}" ] && [ -n "${{ vars.SITE_URL }}" ]; then
             echo "ok=true" >> "$GITHUB_OUTPUT"
           else
             echo "ok=false" >> "$GITHUB_OUTPUT"
