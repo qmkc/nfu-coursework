@@ -2,46 +2,34 @@
   "name": "web-programming",
   "private": true,
   "version": "1.0.0",
-  "type": "module",
   "packageManager": "pnpm@11.25.0",
   "scripts": {
-    "build": "php src/compile.php && vite build",
-    "dev": "nodemon",
-    "lint:html": "pnpm run build && htmlhint \"dist/**/*.html\"",
-    "lint:css": "stylelint \"public/**/*.css\"",
+    "dev": "next dev -p 9000",
+    "build": "next build",
+    "lint:css": "stylelint \"src/**/*.css\"",
     "lint:ts": "tsc --noEmit",
-    "lint": "pnpm run lint:html && pnpm run lint:css && pnpm run lint:ts"
-  },
-  "devDependencies": {
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.1",
-    "htmlhint": "^1.5.0",
-    "nodemon": "^3.1.14",
-    "prettier": "^3.9.6",
-    "stylelint": "^16.9.0",
-    "stylelint-config-standard": "^36.0.1",
-    "typescript": "^7.0.2",
-    "vite": "^8.3.0"
+    "lint": "pnpm run lint:css && pnpm run lint:ts"
   },
   "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.1",
-    "@mui/icons-material": "^9.4.0",
-    "@mui/material": "^9.4.0",
+    "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.13.1",
+    "gsap": "^3.15.0",
+    "next": "^16.3.8",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "shiki": "^4.5.0",
+    "three": "^0.186.1"
   },
-  "nodemonConfig": {
-    "watch": [
-      "src",
-      "public"
-    ],
-    "ext": "php,ts,tsx,css,txt",
-    "ignore": [
-      "dist"
-    ],
-    "delay": 300,
-    "exec": "php src/compile.php && .\\node_modules\\.bin\\vite build && php -S 0.0.0.0:9000 -t dist dist/router.php"
+  "devDependencies": {
+    "@types/bootstrap": "^5.2.11",
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.186.0",
+    "prettier": "^3.9.6",
+    "sass": "^1.105.1",
+    "stylelint": "^16.9.0",
+    "stylelint-config-standard": "^36.0.1",
+    "typescript": "^5.9.3"
   }
 }

@@ -86,9 +86,9 @@ generate_ftp_config() {
 [ -n "$FTP_HOST" ] || error_exit "FTP_HOST not set"
 [ -n "$FTP_USER" ] || error_exit "FTP_USER not set"
 [ -n "$FTP_PASS" ] || error_exit "FTP_PASS not set"
-[ -d "dist" ] || error_exit "dist directory not found"
+[ -d "out" ] || error_exit "out directory not found"
 
-find dist -type f -print -quit 2>/dev/null | grep -q . || error_exit "dist directory is empty"
+find out -type f -print -quit 2>/dev/null | grep -q . || error_exit "out directory is empty"
 
 echo ""
 echo "[1/5] Generating local manifest..."
@@ -97,7 +97,7 @@ echo "[1/5] Generating local manifest..."
 file_count=0
 
 while IFS= read -r -d '' local_file; do
-  relative_path="${local_file#dist/}"
+  relative_path="${local_file#out/}"
   case "$relative_path" in
     *$'\n'*|*$'\r'*|*$'\t'*)
       error_exit "Unsupported filename: $relative_path"
@@ -113,7 +113,7 @@ while IFS= read -r -d '' local_file; do
     "$hash" >> "$TMP_LOCAL_MANIFEST"
 
   file_count=$((file_count + 1))
-done < <(find dist -type f -print0 2>/dev/null | LC_ALL=C sort -z)
+done < <(find out -type f -print0 2>/dev/null | LC_ALL=C sort -z)
 
 LC_ALL=C sort -o "$TMP_LOCAL_MANIFEST" "$TMP_LOCAL_MANIFEST"
 validate_manifest "$TMP_LOCAL_MANIFEST" || error_exit "Generated local manifest is invalid"
@@ -242,7 +242,7 @@ remove_commands=0
       *) error_exit "Invalid remote path: $remote_path" ;;
     esac
 
-    local_path="dist${remote_path#"$FTP_REMOTE_BASE"}"
+    local_path="out${remote_path#"$FTP_REMOTE_BASE"}"
 
     if [ ! -f "$local_path" ]; then
       warn "Local file missing: $local_path (skipping)"

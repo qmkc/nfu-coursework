@@ -7,8 +7,8 @@ on:
       - '.github/workflows/ftp-deploy-web-programming.yml'
       - '115-1/web-programming/src/**'
       - '115-1/web-programming/public/**'
-      - '115-1/web-programming/composer.json'
-      - '115-1/web-programming/composer.lock'
+      - '115-1/web-programming/next.config.ts'
+      - '115-1/web-programming/tsconfig.json'
       - '115-1/web-programming/package.json'
       - '115-1/web-programming/pnpm-lock.yaml'
       - '115-1/web-programming/scripts/ftp-deploy.sh'
@@ -29,14 +29,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-
-      - name: Install Composer dependencies
-        run: composer install --no-dev --optimize-autoloader
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -52,8 +44,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build (renders static routes + bundles src/ and vendor/ into dist/runtime/)
-        run: pnpm run --if-present build
+      - name: Build (Next.js static export to out/)
+        run: pnpm run build
 
       - name: Check FTP secrets
         id: check-secrets

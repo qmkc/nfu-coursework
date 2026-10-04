@@ -3,6 +3,6 @@
   "rules": {
     "import-notation": "url",
     "no-descending-specificity": null,
-    "selector-class-pattern": "^([a-z][a-z0-9]*)(-[a-z0-9]+)*$|^Mui[A-Za-z-]+$"
+    "selector-class-pattern": "^([a-z][a-z0-9]*)(-[a-z0-9]+)*$"
   }
 }
