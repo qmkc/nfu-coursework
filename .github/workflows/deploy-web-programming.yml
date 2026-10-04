@@ -70,4 +70,4 @@ jobs:
           FTP_PASS: ${{ secrets.FTP_PASSWORD }}
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
           SITE_URL: ${{ secrets.SITE_URL }}
-        run: ./scripts/deploy.sh
+        run: bash ./scripts/deploy.sh
