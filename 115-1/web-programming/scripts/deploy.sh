@@ -39,6 +39,10 @@ DEPLOY_TOKEN="${DEPLOY_TOKEN:-}"
 SITE_URL="${SITE_URL:-}"
 FTP_REMOTE_BASE="${FTP_REMOTE_BASE:-/htdocs}"
 CHUNK_SIZE_BYTES="${CHUNK_SIZE_BYTES:-4194304}"
+# Some free hosts (InfinityFree included) silently drop requests that look
+# like they're from a bot/script - no error, just a dropped connection
+# (curl: (52) Empty reply from server). A browser-like UA avoids that.
+CURL_USER_AGENT="${CURL_USER_AGENT:-Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36}"
 
 WORKDIR="$(cd "$(mktemp -d ./.tmp.deploy.XXXXXX)" && pwd)"
 TMP_FTP_CMD="$WORKDIR/ftp-cmd"
@@ -124,6 +128,61 @@ jq_get() {
   printf '%s' "$json" | jq -r "$filter"
 }
 
+
+update_test_cookie() {
+  local challenge_url="${ENDPOINT_URL}?action=challenge"
+  local html key iv cipher
+  local -a decrypted iv_bytes
+  local cookie=''
+
+  html="$(curl -fsSL -A "$CURL_USER_AGENT" "$challenge_url")" || return 1
+  key="$(grep -oP 'a=toNumbers\("\K[0-9a-fA-F]+' <<< "$html")"
+  iv="$(grep -oP 'b=toNumbers\("\K[0-9a-fA-F]+' <<< "$html")"
+  cipher="$(grep -oP 'c=toNumbers\("\K[0-9a-fA-F]+' <<< "$html")"
+
+  if [[ -z "$key" || -z "$iv" || -z "$cipher" ]]; then
+    echo "Failed to extract AES parameters" >&2
+    return 1
+  fi
+
+  echo "  AES key:    $key"
+  echo "  AES IV:     $iv"
+  echo "  AES cipher: $cipher"
+
+  read -ra decrypted <<< "$(
+    printf '%s' "$cipher" |
+      sed 's/../\\x&/g' |
+      printf '%b' "$(cat)" |
+      openssl enc -d -aes-128-ecb \
+        -K "$key" \
+        -nosalt \
+        -nopad |
+      od -An -tu1
+  )" || return 1
+
+  read -ra iv_bytes <<< "$(
+    printf '%s' "$iv" |
+      sed 's/../\\x&/g' |
+      printf '%b' "$(cat)" |
+      od -An -tu1
+  )" || return 1
+
+  if [[ ${#decrypted[@]} -ne 16 || ${#iv_bytes[@]} -ne 16 ]]; then
+    echo "Invalid AES block size" >&2
+    return 1
+  fi
+
+  for i in {0..15}; do
+    printf -v byte '%02x' "$((decrypted[i] ^ iv_bytes[i]))"
+    cookie+="$byte"
+  done
+
+  TEST_COOKIE="$cookie"
+
+  echo "  __test=$TEST_COOKIE"
+}
+
+
 [ -n "$FTP_HOST" ] || error_exit "FTP_HOST not set"
 [ -n "$FTP_USER" ] || error_exit "FTP_USER not set"
 [ -n "$FTP_PASS" ] || error_exit "FTP_PASS not set"
@@ -170,8 +229,13 @@ info "  Endpoint: ${ENDPOINT_URL} (fresh random name, removed again before this 
 echo ""
 echo "[2/5] Diffing out/ against the endpoint's manifest..."
 
+update_test_cookie || error_exit "Failed to obtain InfinityFree challenge cookie"
+
 http_status="$(curl -sS -o "$RESPONSE_PATH" -w '%{http_code}' \
+  -X POST \
+  -A "$CURL_USER_AGENT" \
   -H "X-Deploy-Token: ${DEPLOY_TOKEN}" \
+  -b "__test=${TEST_COOKIE}" \
   -F "action=manifest" \
   "$ENDPOINT_URL")" || error_exit "Fetching the remote manifest failed to connect"
 
@@ -219,8 +283,13 @@ if [ "$upload_count" -eq 0 ]; then
   echo ""
   echo "[5/5] Finalizing deployment..."
 
+  update_test_cookie || error_exit "Failed to obtain InfinityFree challenge cookie"
+
   http_status="$(curl -sS -o "$RESPONSE_PATH" -w '%{http_code}' \
+    -X POST \
+    -A "$CURL_USER_AGENT" \
     -H "X-Deploy-Token: ${DEPLOY_TOKEN}" \
+    -b "__test=${TEST_COOKIE}" \
     -F "action=prune" \
     -F "removed=${removed_json}" \
     "$ENDPOINT_URL")" || error_exit "Prune request failed to connect"
@@ -267,8 +336,12 @@ info "  Uploading in $total chunk(s) of up to $CHUNK_SIZE_BYTES bytes each"
 for i in "${!parts[@]}"; do
   part="${parts[$i]}"
 
+  update_test_cookie || error_exit "Failed to obtain InfinityFree challenge cookie"
   http_status="$(curl -sS -o "$RESPONSE_PATH" -w '%{http_code}' \
+    -X POST \
+    -A "$CURL_USER_AGENT" \
     -H "X-Deploy-Token: ${DEPLOY_TOKEN}" \
+    -b "__test=${TEST_COOKIE}" \
     -F "action=chunk" \
     -F "uploadId=${ZIP_SHA256}" \
     -F "part=${i}" \
@@ -287,8 +360,12 @@ done
 echo ""
 echo "[5/5] Finalizing deployment..."
 
+update_test_cookie || error_exit "Failed to obtain InfinityFree challenge cookie"
 http_status="$(curl -sS -o "$RESPONSE_PATH" -w '%{http_code}' \
+  -X POST \
+  -A "$CURL_USER_AGENT" \
   -H "X-Deploy-Token: ${DEPLOY_TOKEN}" \
+  -b "__test=${TEST_COOKIE}" \
   -F "action=finalize" \
   -F "uploadId=${ZIP_SHA256}" \
   -F "total=${total}" \
