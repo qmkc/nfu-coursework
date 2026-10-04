@@ -16,12 +16,12 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ftp-deploy-web-programming
+  group: deploy-web-programming
   cancel-in-progress: false
 
 jobs:
-  ftp-deploy:
-    name: FTP sync to InfinityFree
+  deploy:
+    name: Sync to InfinityFree
     runs-on: ubuntu-latest
     defaults:
       run:
