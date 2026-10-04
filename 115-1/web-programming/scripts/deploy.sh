@@ -57,6 +57,12 @@ ENDPOINT_UPLOADED=false
 ENDPOINT_REMOVED=false
 ENDPOINT_SELF_DESTRUCTED=false
 
+# InfinityFree anti-bot cookie, fetched lazily by endpoint_post() and reused
+# across requests until a response comes back as non-JSON (= challenge page).
+TEST_COOKIE=''
+# HTTP status of the most recent endpoint_post() call.
+HTTP_STATUS=''
+
 # Best-effort FTP removal of the endpoint file. A no-op if it was never
 # uploaded, already removed, or already self-destructed server-side (the
 # normal case - see scripts/deploy-endpoint.php) - this is only the
@@ -128,10 +134,9 @@ jq_get() {
   printf '%s' "$json" | jq -r "$filter"
 }
 
-
 update_test_cookie() {
   local challenge_url="${ENDPOINT_URL}?action=challenge"
-  local html key iv cipher
+  local html key iv cipher i byte   # i/byte must be local: callers loop over $i too
   local -a decrypted iv_bytes
   local cookie=''
 
@@ -182,6 +187,60 @@ update_test_cookie() {
   echo "  __test=$TEST_COOKIE"
 }
 
+# True if $RESPONSE_PATH holds a JSON object. The endpoint always answers
+# with one; anything else (InfinityFree's HTML challenge page, an empty
+# body) means the request never reached the PHP code.
+response_is_json() {
+  jq -e 'type == "object"' "$RESPONSE_PATH" > /dev/null 2>&1
+}
+
+# POST multipart form fields ("$@" = curl -F arguments) to the endpoint.
+# Writes the body to $RESPONSE_PATH and the status code to $HTTP_STATUS.
+# Reuses $TEST_COOKIE; only when the response is not JSON does it fetch a
+# fresh challenge cookie and retry exactly once. Retrying is safe for every
+# action: a non-JSON reply means PHP never ran, and chunk uploads overwrite
+# the same part file anyway.
+# Returns 1 only on connection-level failure; HTTP/JSON errors are left for
+# the caller to report via require_ok.
+endpoint_post() {
+  local attempt
+  local -a fields=()
+  local field
+
+  for field in "$@"; do
+    fields+=(-F "$field")
+  done
+
+  for attempt in 1 2; do
+    if [ -z "$TEST_COOKIE" ] || [ "$attempt" -eq 2 ]; then
+      update_test_cookie || error_exit "Failed to obtain InfinityFree challenge cookie"
+    fi
+
+    HTTP_STATUS="$(curl -sS -o "$RESPONSE_PATH" -w '%{http_code}' \
+      -X POST \
+      -A "$CURL_USER_AGENT" \
+      -H "X-Deploy-Token: ${DEPLOY_TOKEN}" \
+      -b "__test=${TEST_COOKIE}" \
+      "${fields[@]}" \
+      "$ENDPOINT_URL")" || return 1
+
+    response_is_json && return 0
+
+    if [ "$attempt" -eq 1 ]; then
+      echo "  Response was not JSON (HTTP $HTTP_STATUS) - refreshing challenge cookie and retrying once..." >&2
+    fi
+  done
+
+  return 0
+}
+
+# Abort unless the last endpoint_post() got HTTP 200 and {"ok": true}.
+require_ok() {
+  local what="$1"
+  if [ "$HTTP_STATUS" != "200" ] || [ "$(jq -r '.ok' "$RESPONSE_PATH" 2>/dev/null)" != "true" ]; then
+    error_exit "$what failed (HTTP $HTTP_STATUS): $(head -c 500 "$RESPONSE_PATH")"
+  fi
+}
 
 [ -n "$FTP_HOST" ] || error_exit "FTP_HOST not set"
 [ -n "$FTP_USER" ] || error_exit "FTP_USER not set"
@@ -198,7 +257,7 @@ SITE_URL="${SITE_URL%/}"
 # Freshly random every run, not derived from anything reusable - there's no
 # need for it to be reproducible across deploys since this run removes its
 # own endpoint before exiting (self-destruct server-side, or this script's
-# cleanup trap as a fallback - see the header comment above).
+# cleanup trap as a fallback).
 ENDPOINT_HASH="$(openssl rand -hex 16)"
 ENDPOINT_NAME="deploy-${ENDPOINT_HASH}.php"
 ENDPOINT_URL="${SITE_URL}/api/${ENDPOINT_NAME}"
@@ -229,22 +288,10 @@ info "  Endpoint: ${ENDPOINT_URL} (fresh random name, removed again before this 
 echo ""
 echo "[2/5] Diffing out/ against the endpoint's manifest..."
 
-update_test_cookie || error_exit "Failed to obtain InfinityFree challenge cookie"
+endpoint_post "action=manifest" || error_exit "Fetching the remote manifest failed to connect"
+require_ok "Fetching the remote manifest"
 
-http_status="$(curl -sS -o "$RESPONSE_PATH" -w '%{http_code}' \
-  -X POST \
-  -A "$CURL_USER_AGENT" \
-  -H "X-Deploy-Token: ${DEPLOY_TOKEN}" \
-  -b "__test=${TEST_COOKIE}" \
-  -F "action=manifest" \
-  "$ENDPOINT_URL")" || error_exit "Fetching the remote manifest failed to connect"
-
-response="$(cat "$RESPONSE_PATH")"
-if [ "$http_status" != "200" ] || [ "$(jq_get '.ok' "$response")" != "true" ]; then
-  error_exit "Fetching the remote manifest failed (HTTP $http_status): $response"
-fi
-
-jq -r '.manifest | to_entries[]? | "\(.key)\t\(.value)"' <<< "$response" | LC_ALL=C sort -o "$REMOTE_MANIFEST"
+jq -r '.manifest | to_entries[]? | "\(.key)\t\(.value)"' "$RESPONSE_PATH" | LC_ALL=C sort -o "$REMOTE_MANIFEST"
 
 : > "$LOCAL_MANIFEST"
 while IFS= read -r -d '' local_file; do
@@ -254,9 +301,12 @@ while IFS= read -r -d '' local_file; do
 done < <(find out -type f -print0 2>/dev/null | LC_ALL=C sort -z)
 LC_ALL=C sort -o "$LOCAL_MANIFEST" "$LOCAL_MANIFEST"
 
-upload_list="$(comm -23 <(LC_ALL=C sort "$LOCAL_MANIFEST") <(LC_ALL=C sort "$REMOTE_MANIFEST") | cut -f1)"
+# comm must use the same collation as the sort that produced its inputs,
+# otherwise it rejects them as "not in sorted order" (and set -e aborts).
+# Both manifests are already sorted with LC_ALL=C above.
+upload_list="$(LC_ALL=C comm -23 "$LOCAL_MANIFEST" "$REMOTE_MANIFEST" | cut -f1)"
 remove_list="$(
-  comm -23 \
+  LC_ALL=C comm -23 \
     <(cut -f1 "$REMOTE_MANIFEST" | LC_ALL=C sort -u) \
     <(cut -f1 "$LOCAL_MANIFEST" | LC_ALL=C sort -u)
 )"
@@ -274,7 +324,7 @@ if [ "$upload_count" -eq 0 ] && [ "$removed_count" -eq 0 ]; then
   exit 0
 fi
 
-removed_json="$(printf '%s\n' "$remove_list" | sed '/^$/d' | jq -R . | jq -s .)"
+removed_json="$(printf '%s\n' "$remove_list" | sed '/^$/d' | jq -R . | jq -s -c .)"
 
 if [ "$upload_count" -eq 0 ]; then
   echo ""
@@ -283,23 +333,11 @@ if [ "$upload_count" -eq 0 ]; then
   echo ""
   echo "[5/5] Finalizing deployment..."
 
-  update_test_cookie || error_exit "Failed to obtain InfinityFree challenge cookie"
-
-  http_status="$(curl -sS -o "$RESPONSE_PATH" -w '%{http_code}' \
-    -X POST \
-    -A "$CURL_USER_AGENT" \
-    -H "X-Deploy-Token: ${DEPLOY_TOKEN}" \
-    -b "__test=${TEST_COOKIE}" \
-    -F "action=prune" \
-    -F "removed=${removed_json}" \
-    "$ENDPOINT_URL")" || error_exit "Prune request failed to connect"
-
-  response="$(cat "$RESPONSE_PATH")"
-  if [ "$http_status" != "200" ] || [ "$(jq_get '.ok' "$response")" != "true" ]; then
-    error_exit "Prune failed (HTTP $http_status): $response"
-  fi
+  endpoint_post "action=prune" "removed=${removed_json}" || error_exit "Prune request failed to connect"
+  require_ok "Prune"
   ENDPOINT_SELF_DESTRUCTED=true
 
+  response="$(cat "$RESPONSE_PATH")"
   echo ""
   success "Deployment completed successfully!"
   info "  Written: 0 file(s)"
@@ -336,23 +374,14 @@ info "  Uploading in $total chunk(s) of up to $CHUNK_SIZE_BYTES bytes each"
 for i in "${!parts[@]}"; do
   part="${parts[$i]}"
 
-  update_test_cookie || error_exit "Failed to obtain InfinityFree challenge cookie"
-  http_status="$(curl -sS -o "$RESPONSE_PATH" -w '%{http_code}' \
-    -X POST \
-    -A "$CURL_USER_AGENT" \
-    -H "X-Deploy-Token: ${DEPLOY_TOKEN}" \
-    -b "__test=${TEST_COOKIE}" \
-    -F "action=chunk" \
-    -F "uploadId=${ZIP_SHA256}" \
-    -F "part=${i}" \
-    -F "total=${total}" \
-    -F "chunk=@${part};type=application/zip" \
-    "$ENDPOINT_URL")" || error_exit "Chunk upload $((i + 1))/$total failed to connect"
-
-  response="$(cat "$RESPONSE_PATH")"
-  if [ "$http_status" != "200" ] || [ "$(jq_get '.ok' "$response")" != "true" ]; then
-    error_exit "Chunk upload $((i + 1))/$total failed (HTTP $http_status): $response"
-  fi
+  endpoint_post \
+    "action=chunk" \
+    "uploadId=${ZIP_SHA256}" \
+    "part=${i}" \
+    "total=${total}" \
+    "chunk=@${part};type=application/zip" \
+    || error_exit "Chunk upload $((i + 1))/$total failed to connect"
+  require_ok "Chunk upload $((i + 1))/$total"
 
   info "    part $((i + 1))/$total uploaded"
 done
@@ -360,25 +389,17 @@ done
 echo ""
 echo "[5/5] Finalizing deployment..."
 
-update_test_cookie || error_exit "Failed to obtain InfinityFree challenge cookie"
-http_status="$(curl -sS -o "$RESPONSE_PATH" -w '%{http_code}' \
-  -X POST \
-  -A "$CURL_USER_AGENT" \
-  -H "X-Deploy-Token: ${DEPLOY_TOKEN}" \
-  -b "__test=${TEST_COOKIE}" \
-  -F "action=finalize" \
-  -F "uploadId=${ZIP_SHA256}" \
-  -F "total=${total}" \
-  -F "sha256=${ZIP_SHA256}" \
-  -F "removed=${removed_json}" \
-  "$ENDPOINT_URL")" || error_exit "Finalize request failed to connect"
-
-response="$(cat "$RESPONSE_PATH")"
-if [ "$http_status" != "200" ] || [ "$(jq_get '.ok' "$response")" != "true" ]; then
-  error_exit "Finalize failed (HTTP $http_status): $response"
-fi
+endpoint_post \
+  "action=finalize" \
+  "uploadId=${ZIP_SHA256}" \
+  "total=${total}" \
+  "sha256=${ZIP_SHA256}" \
+  "removed=${removed_json}" \
+  || error_exit "Finalize request failed to connect"
+require_ok "Finalize"
 ENDPOINT_SELF_DESTRUCTED=true
 
+response="$(cat "$RESPONSE_PATH")"
 echo ""
 success "Deployment completed successfully!"
 info "  Written: $(jq_get '.written' "$response") file(s)"
