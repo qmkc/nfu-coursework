@@ -10,6 +10,7 @@ import {
   type DuoSceneHandle,
   type FoldState,
 } from "./scene";
+import { initDuoExtras } from "./extras";
 
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother, SplitText);
 
@@ -190,8 +191,11 @@ export function initDuoPage(root: HTMLElement): () => void {
       });
       return () => trigger.kill();
     });
-
   }, root);
+
+  // SweetAlert2 / AOS / Chart.js / CountUp / dayjs / canvas-confetti — after
+  // the context above so ScrollSmoother and the hero pin already exist.
+  const extras = initDuoExtras();
 
   // ------------------------------------------------------------------
   // Magnetic buttons — nudge toward the cursor within their own bounds.
@@ -204,49 +208,59 @@ export function initDuoPage(root: HTMLElement): () => void {
   // buttons/cards are about to be removed from the DOM regardless — there's
   // nothing to actually revert, so it's simplest to just not track them.
   // ------------------------------------------------------------------
-  document.querySelectorAll<HTMLElement>(".btn-glow, .btn-outline-glow").forEach((btn) => {
-    const moveX = gsap.quickTo(btn, "x", { duration: 0.4, ease: "power3" });
-    const moveY = gsap.quickTo(btn, "y", { duration: 0.4, ease: "power3" });
+  document
+    .querySelectorAll<HTMLElement>(".btn-glow, .btn-outline-glow")
+    .forEach((btn) => {
+      const moveX = gsap.quickTo(btn, "x", { duration: 0.4, ease: "power3" });
+      const moveY = gsap.quickTo(btn, "y", { duration: 0.4, ease: "power3" });
 
-    btn.addEventListener("pointermove", (e) => {
-      const rect = btn.getBoundingClientRect();
-      moveX((e.clientX - rect.left - rect.width / 2) * 0.25);
-      moveY((e.clientY - rect.top - rect.height / 2) * 0.25);
-    });
+      btn.addEventListener("pointermove", (e) => {
+        const rect = btn.getBoundingClientRect();
+        moveX((e.clientX - rect.left - rect.width / 2) * 0.25);
+        moveY((e.clientY - rect.top - rect.height / 2) * 0.25);
+      });
 
-    btn.addEventListener("pointerleave", () => {
-      moveX(0);
-      moveY(0);
+      btn.addEventListener("pointerleave", () => {
+        moveX(0);
+        moveY(0);
+      });
     });
-  });
 
   // ------------------------------------------------------------------
   // Cursor tilt + spotlight on feature/price cards — same reasoning as the
   // magnetic buttons above for living outside gsap.context().
   // ------------------------------------------------------------------
-  document.querySelectorAll<HTMLElement>(".feature-card, .price-card").forEach((card) => {
-    gsap.set(card, { transformPerspective: 800, transformOrigin: "center" });
-    const tiltX = gsap.quickTo(card, "rotateX", { duration: 0.5, ease: "power3" });
-    const tiltY = gsap.quickTo(card, "rotateY", { duration: 0.5, ease: "power3" });
-    const lift = gsap.quickTo(card, "y", { duration: 0.5, ease: "power3" });
+  document
+    .querySelectorAll<HTMLElement>(".feature-card, .price-card")
+    .forEach((card) => {
+      gsap.set(card, { transformPerspective: 800, transformOrigin: "center" });
+      const tiltX = gsap.quickTo(card, "rotateX", {
+        duration: 0.5,
+        ease: "power3",
+      });
+      const tiltY = gsap.quickTo(card, "rotateY", {
+        duration: 0.5,
+        ease: "power3",
+      });
+      const lift = gsap.quickTo(card, "y", { duration: 0.5, ease: "power3" });
 
-    card.addEventListener("pointermove", (e) => {
-      const rect = card.getBoundingClientRect();
-      const px = (e.clientX - rect.left) / rect.width - 0.5;
-      const py = (e.clientY - rect.top) / rect.height - 0.5;
-      tiltY(px * 10);
-      tiltX(-py * 10);
-      lift(-8);
-      card.style.setProperty("--mx", `${e.clientX - rect.left}px`);
-      card.style.setProperty("--my", `${e.clientY - rect.top}px`);
-    });
+      card.addEventListener("pointermove", (e) => {
+        const rect = card.getBoundingClientRect();
+        const px = (e.clientX - rect.left) / rect.width - 0.5;
+        const py = (e.clientY - rect.top) / rect.height - 0.5;
+        tiltY(px * 10);
+        tiltX(-py * 10);
+        lift(-8);
+        card.style.setProperty("--mx", `${e.clientX - rect.left}px`);
+        card.style.setProperty("--my", `${e.clientY - rect.top}px`);
+      });
 
-    card.addEventListener("pointerleave", () => {
-      tiltX(0);
-      tiltY(0);
-      lift(0);
+      card.addEventListener("pointerleave", () => {
+        tiltX(0);
+        tiltY(0);
+        lift(0);
+      });
     });
-  });
 
   // ------------------------------------------------------------------
   // Hero entrance timeline — split-text word tumble, gated on
@@ -448,6 +462,7 @@ export function initDuoPage(root: HTMLElement): () => void {
         const glow = hexToRgb(accent);
         if (glow)
           root3.style.setProperty("--glow", `${glow.r}, ${glow.g}, ${glow.b}`);
+        extras.setAccent(accent, accent2);
       }
 
       if (colorway) duoScene?.setColorway(colorway);
@@ -505,6 +520,7 @@ export function initDuoPage(root: HTMLElement): () => void {
     document.removeEventListener("scroll", onScroll);
     heroTimeline?.kill();
     heroSplit?.revert();
+    extras.cleanup();
     ctx.revert();
     duoScene?.dispose();
   };

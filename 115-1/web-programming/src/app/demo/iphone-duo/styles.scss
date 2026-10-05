@@ -728,13 +728,21 @@ body::before {
   // bar on the header cell — this is the spec column that matters (the
   // unfolded screen), so it should read as the "winner" at a glance.
   .table-highlight {
-    background: linear-gradient(180deg, rgba(var(--glow), 0.14), rgba(var(--glow), 0.05));
+    background: linear-gradient(
+      180deg,
+      rgba(var(--glow), 0.14),
+      rgba(var(--glow), 0.05)
+    );
     color: #fff;
     font-weight: 600;
   }
 
   thead th.table-highlight {
-    background: linear-gradient(180deg, rgba(var(--glow), 0.26), rgba(var(--glow), 0.1));
+    background: linear-gradient(
+      180deg,
+      rgba(var(--glow), 0.26),
+      rgba(var(--glow), 0.1)
+    );
     box-shadow: inset 0 3px 0 var(--accent);
   }
 }
@@ -774,7 +782,11 @@ body::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(220px circle at var(--mx) var(--my), rgba(var(--glow), 0.22), transparent 70%);
+  background: radial-gradient(
+    220px circle at var(--mx) var(--my),
+    rgba(var(--glow), 0.22),
+    transparent 70%
+  );
   opacity: 0;
   transition: opacity 0.35s ease;
   pointer-events: none;
@@ -877,7 +889,11 @@ body::before {
     // readable as "selected" at a glance, matching the active states used
     // for .fold-btn / .color-swatch elsewhere on the page.
     &:not(.collapsed) {
-      background: linear-gradient(90deg, rgba(var(--glow), 0.16), rgba(var(--glow), 0.03));
+      background: linear-gradient(
+        90deg,
+        rgba(var(--glow), 0.16),
+        rgba(var(--glow), 0.03)
+      );
       color: #fff;
       box-shadow: inset 3px 0 0 var(--accent);
     }
@@ -913,7 +929,12 @@ footer {
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(var(--glow), 0.6), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(var(--glow), 0.6),
+      transparent
+    );
   }
 }
 
@@ -937,6 +958,160 @@ footer {
     background: rgba(var(--glow), 0.12);
     color: var(--accent-2);
     transform: translateY(-3px);
+  }
+}
+
+// ------------------------------------------------------------------
+// Stats (CountUp) + charts (Chart.js)
+// ------------------------------------------------------------------
+.stat-tile,
+.chart-card {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.015)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.5rem;
+  height: 100%;
+}
+
+.stat-tile {
+  padding: 1.8rem 1rem;
+  text-align: center;
+}
+
+.stat-figure {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+
+.stat-value {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-unit {
+  color: #b3b3c8;
+  font-weight: 600;
+}
+
+.chart-card {
+  padding: 1.8rem;
+}
+
+// Chart.js sizes the canvas to this box (maintainAspectRatio: false), so it
+// needs a definite height and to be the canvas's positioned parent.
+.chart-box {
+  position: relative;
+  height: 300px;
+}
+
+// ------------------------------------------------------------------
+// Pre-order countdown (dayjs)
+// ------------------------------------------------------------------
+.countdown {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  color: var(--accent-2);
+  font-weight: 600;
+}
+
+.countdown-cell {
+  min-width: 4.5rem;
+  padding: 0.8rem 0.5rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.countdown-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown-label {
+  font-size: 0.75rem;
+  color: #8a8aa8;
+}
+
+// ------------------------------------------------------------------
+// SweetAlert2 — dark theme comes from the lib (`theme: "dark"`); these only
+// pull the popup toward the page's glass surfaces. Buttons use the page's
+// own .btn-glow/.btn-outline-glow (buttonsStyling: false in extras.ts).
+// ------------------------------------------------------------------
+.duo-swal {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1.5rem;
+
+  .swal2-actions {
+    gap: 0.75rem;
+  }
+}
+
+.duo-swal-toast {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+// ------------------------------------------------------------------
+// Forced "校園測試 DEMO" watermark (DemoWatermark.tsx). Positioning is
+// duplicated here so it's already in place on first paint, before the
+// component's effect re-applies it inline with !important.
+// ------------------------------------------------------------------
+.demo-watermark {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+  user-select: none;
+}
+
+.demo-watermark-tiles {
+  position: absolute;
+  inset: 0;
+
+  // Light fill + dark outline, so it reads on the dark page and on the
+  // light photo cards alike.
+  text {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    fill: rgba(255, 255, 255, 0.09);
+    stroke: rgba(0, 0, 0, 0.14);
+    stroke-width: 0.6px;
+  }
+}
+
+.demo-watermark-badge {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  margin: 0;
+  max-width: calc(100% - 1.5rem);
+  padding: 0.4rem 1rem;
+  border-radius: 50rem;
+  background: rgba(220, 53, 69, 0.92);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  box-shadow: 0 6px 20px -6px rgba(0, 0, 0, 0.7);
+
+  i {
+    margin-right: 0.4rem;
   }
 }
 
