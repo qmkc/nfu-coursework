@@ -1,0 +1,62 @@
+// ------------------------------------------------------------------
+// Accordion (FAQ)
+// ------------------------------------------------------------------
+.accordion-glass {
+  .accordion-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1rem !important;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+    backdrop-filter: blur(10px);
+    transition:
+      border-color 0.3s ease,
+      box-shadow 0.3s ease;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+  }
+
+  .accordion-button {
+    background: transparent;
+    color: #e8e8f0;
+    font-weight: 600;
+    padding: 1.2rem 1.5rem;
+    transition:
+      background 0.3s ease,
+      color 0.3s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    &:focus {
+      box-shadow: none;
+    }
+
+    // A left accent bar (not just a tint wash) makes the open question
+    // readable as "selected" at a glance, matching the active states used
+    // for .fold-btn / .color-swatch elsewhere on the page.
+    &:not(.collapsed) {
+      background: linear-gradient(
+        90deg,
+        rgba(var(--glow), 0.16),
+        rgba(var(--glow), 0.03)
+      );
+      color: #fff;
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+
+    &::after {
+      filter: invert(1);
+      transition: transform 0.3s ease;
+    }
+  }
+
+  .accordion-body {
+    color: #b3b3c8;
+    padding: 1rem 1.5rem 1.4rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+}

@@ -1,0 +1,49 @@
+// ------------------------------------------------------------------
+// Pricing cards
+// ------------------------------------------------------------------
+.price-card {
+  position: relative;
+  --mx: 50%;
+  --my: 50%;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 2.5rem 2rem;
+  height: 100%;
+  // Same deal as .feature-card: transform is JS-owned (cursor tilt).
+  transition: box-shadow 0.3s ease;
+  will-change: transform;
+}
+
+.price-card.featured {
+  border-color: var(--accent);
+  background: linear-gradient(
+    180deg,
+    rgba(var(--glow), 0.12),
+    rgba(255, 255, 255, 0.02)
+  );
+  box-shadow: 0 25px 60px -20px rgba(var(--glow), 0.6);
+}
+
+// Cursor-following spotlight glow, shared with .feature-card — tracked via
+// --mx/--my in main.ts.
+.feature-card > .spotlight,
+.price-card > .spotlight {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    220px circle at var(--mx) var(--my),
+    rgba(var(--glow), 0.22),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.feature-card:hover > .spotlight,
+.price-card:hover > .spotlight {
+  opacity: 1;
+}

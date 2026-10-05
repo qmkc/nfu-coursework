@@ -1,0 +1,17 @@
+// ------------------------------------------------------------------
+// SweetAlert2 — dark theme comes from the lib (`theme: "dark"`); these only
+// pull the popup toward the page's glass surfaces. Buttons use the page's
+// own .btn-glow/.btn-outline-glow (buttonsStyling: false in extras.ts).
+// ------------------------------------------------------------------
+.duo-swal {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1.5rem;
+
+  .swal2-actions {
+    gap: 0.75rem;
+  }
+}
+
+.duo-swal-toast {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}

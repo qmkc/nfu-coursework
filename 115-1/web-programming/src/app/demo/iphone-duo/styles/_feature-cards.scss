@@ -1,0 +1,52 @@
+// ------------------------------------------------------------------
+// Feature cards
+// ------------------------------------------------------------------
+.feature-card {
+  position: relative;
+  --mx: 50%;
+  --my: 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.015)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.5rem;
+  padding: 2.2rem 1.8rem;
+  height: 100%;
+  overflow: hidden;
+  // transform itself is owned by the cursor-tilt in main.ts (GSAP sets it
+  // inline every frame while hovered); a CSS transition on the same
+  // property here would fight that tween instead of complementing it.
+  transition: border-color 0.35s ease;
+  will-change: transform;
+}
+
+.feature-card:hover {
+  border-color: rgba(var(--glow), 0.5);
+}
+
+.feature-card .icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 10px 25px -8px rgba(var(--glow), 0.7);
+  margin-bottom: 1.2rem;
+}
+
+.feature-card::before {
+  content: "";
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(circle, rgba(var(--glow), 0.35), transparent 70%);
+  top: -60px;
+  right: -60px;
+  border-radius: 50%;
+  pointer-events: none;
+}

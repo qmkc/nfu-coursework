@@ -1,0 +1,82 @@
+// ------------------------------------------------------------------
+// Hero
+// ------------------------------------------------------------------
+.hero {
+  position: relative;
+  padding-top: 8rem;
+  padding-bottom: 4rem;
+  min-height: 92vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+// Scroll-parallax drift (main.ts, GSAP) lives on this wrapper, not on
+// .blob itself — .blob already owns the CSS `float` keyframe below for its
+// idle bob, and a scroll-driven inline `transform` on the same element
+// would fight that running animation instead of combining with it.
+.blob-parallax {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.55;
+  z-index: 0;
+  animation: float 12s ease-in-out infinite;
+}
+
+.blob-1 {
+  width: 420px;
+  height: 420px;
+  top: -120px;
+  left: -100px;
+  background: var(--accent);
+}
+
+.blob-2 {
+  width: 380px;
+  height: 380px;
+  bottom: -140px;
+  right: -80px;
+  background: var(--accent-2);
+  animation-delay: -4s;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(30px, -25px) scale(1.08);
+  }
+}
+
+.badge-pill-glass {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(6px);
+  color: #cfcfe8;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.9rem;
+  border-radius: 50rem;
+}
+
+.hero h1 {
+  font-size: clamp(2.6rem, 6vw, 5rem);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+}
+
+.hero-lead {
+  color: #b3b3c8;
+  max-width: 34rem;
+}

@@ -1,0 +1,53 @@
+// ------------------------------------------------------------------
+// Navbar
+// ------------------------------------------------------------------
+.navbar-glass {
+  background: rgba(5, 5, 10, 0.55);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition:
+    padding 0.3s ease,
+    background 0.3s ease;
+
+  .navbar-brand {
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .nav-link {
+    position: relative;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.92rem;
+    transition: color 0.2s ease;
+
+    &::after {
+      content: "";
+      position: absolute;
+      left: 0.5rem;
+      right: 100%;
+      bottom: 0.15rem;
+      height: 2px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: right 0.3s ease;
+    }
+
+    &:hover,
+    &.active {
+      color: #fff;
+    }
+
+    &:hover::after,
+    &.active::after {
+      right: 0.5rem;
+    }
+  }
+
+  &.scrolled {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    background: rgba(5, 5, 10, 0.85);
+    box-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.7);
+  }
+}

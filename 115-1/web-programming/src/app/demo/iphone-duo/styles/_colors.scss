@@ -1,0 +1,23 @@
+// ------------------------------------------------------------------
+// Color swatches
+// ------------------------------------------------------------------
+.color-swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+.color-swatch:hover {
+  transform: scale(1.12);
+}
+
+.color-swatch.active {
+  border-color: #fff;
+  transform: scale(1.15);
+}

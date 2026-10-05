@@ -1,0 +1,50 @@
+// ------------------------------------------------------------------
+// Stats (CountUp) + charts (Chart.js)
+// ------------------------------------------------------------------
+.stat-tile,
+.chart-card {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.015)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.5rem;
+  height: 100%;
+}
+
+.stat-tile {
+  padding: 1.8rem 1rem;
+  text-align: center;
+}
+
+.stat-figure {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+
+.stat-value {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-unit {
+  color: #b3b3c8;
+  font-weight: 600;
+}
+
+.chart-card {
+  padding: 1.8rem;
+}
+
+// Chart.js sizes the canvas to this box (maintainAspectRatio: false), so it
+// needs a definite height and to be the canvas's positioned parent.
+.chart-box {
+  position: relative;
+  height: 300px;
+}

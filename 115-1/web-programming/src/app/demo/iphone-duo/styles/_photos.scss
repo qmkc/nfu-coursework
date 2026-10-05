@@ -1,0 +1,61 @@
+// ------------------------------------------------------------------
+// Real product photography, presented on a soft "museum card" —
+// these are genuine Apple studio shots on white backdrops, and this
+// site is dark-themed, so instead of dumping a white rectangle onto a
+// dark hero (or faking a device out of divs) each photo sits on an
+// elevated light panel that intentionally contrasts with the page,
+// with the accent glow bleeding out from behind it.
+// ------------------------------------------------------------------
+.photo-card {
+  position: relative;
+  background: linear-gradient(160deg, #fdfdfb, #eae7dd);
+  border-radius: 28px;
+  padding: 1.75rem;
+  box-shadow:
+    0 40px 90px -25px rgba(0, 0, 0, 0.7),
+    0 0 90px -15px rgba(var(--glow), 0.55);
+  transition: box-shadow 0.6s ease;
+}
+
+.photo-card--tight {
+  padding: 1.25rem;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.photo-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1400 / 927;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.phone-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.9s ease;
+}
+
+.phone-photo.active {
+  opacity: 1;
+}
+
+.photo-card-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+}
+
+.photo-caption {
+  margin: 1rem 0 0;
+  text-align: center;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: #7a7a70;
+}

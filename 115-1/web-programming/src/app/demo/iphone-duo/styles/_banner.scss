@@ -1,0 +1,41 @@
+// ------------------------------------------------------------------
+// Lifestyle banner — a scroll-scrubbed zoom (main.ts) rather than the
+// old background-attachment:fixed trick, which is smoother, works
+// identically on mobile (fixed-attachment parallax is unreliable on iOS
+// Safari), and composites on its own layer instead of repainting.
+// ------------------------------------------------------------------
+.img-banner {
+  position: relative;
+  min-height: 42vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.img-banner-media {
+  position: absolute;
+  inset: -8%; // overscanned so the scroll-zoom never reveals an edge
+  background-size: cover;
+  background-position: center;
+  will-change: transform;
+}
+
+.img-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(5, 5, 10, 0.75),
+      rgba(5, 5, 10, 0.55) 40%,
+      rgba(5, 5, 10, 0.85)
+    ),
+    radial-gradient(circle at 50% 50%, rgba(var(--glow), 0.25), transparent 65%);
+}
+
+@media (max-width: 767.98px) {
+  .img-banner {
+    min-height: 32vh;
+  }
+}

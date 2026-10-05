@@ -1,0 +1,87 @@
+// ------------------------------------------------------------------
+// Design tokens
+// ------------------------------------------------------------------
+:root {
+  --accent: #d8b26b;
+  --accent-2: #f4dca0;
+  --glow: 216, 178, 106;
+}
+
+// ScrollSmoother (main.ts) drives the actual scroll feel now, including
+// anchor-link jumps — native smooth-scroll behavior would just double up
+// on top of it with its own easing curve.
+#smooth-wrapper {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+#smooth-content {
+  overflow: visible;
+  width: 100%;
+}
+
+body {
+  position: relative;
+  background:
+    radial-gradient(
+      circle at 15% 10%,
+      rgba(127, 90, 240, 0.18),
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 85% 0%,
+      rgba(44, 177, 255, 0.15),
+      transparent 40%
+    ),
+    #05050a;
+  overflow-x: hidden;
+}
+
+// Subtle film-grain texture for a more premium, less "flat CSS" surface.
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+// Fills left-to-right with overall page scroll (see main.ts) — scaleX
+// rather than width so it's one compositor-only transform, not a layout
+// property, however often it updates.
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transform: scaleX(0);
+  transform-origin: left;
+  z-index: 2001;
+  pointer-events: none;
+}
+
+.text-gradient {
+  background: linear-gradient(
+    90deg,
+    #f5f5ff 0%,
+    var(--accent) 45%,
+    var(--accent-2) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shine 6s linear infinite;
+}
+
+@keyframes shine {
+  to {
+    background-position: 200% center;
+  }
+}

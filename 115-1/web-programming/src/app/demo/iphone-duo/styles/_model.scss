@@ -1,0 +1,87 @@
+// ------------------------------------------------------------------
+// Interactive 3D model — a real, textured glTF of the device rendered
+// live with Three.js (not <model-viewer>, not a CSS approximation):
+// draggable orbit, programmatic material color, screen textures and
+// choreographed camera moves, all driven from scene.ts.
+// ------------------------------------------------------------------
+// Wraps the model + its controls as one pinned unit — GSAP ScrollTrigger
+// (see main.ts) pins this while the user scrolls, scrubbing the fold open.
+// Only .model-glow's absolute positioning depends on this being the nearest
+// positioned ancestor (it centers on the stage, not the whole hero).
+.model-pin-area {
+  position: relative;
+}
+
+.model-stage {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+}
+
+// Big "showcase" framing once there's room for it — see .model-pin-area;
+// below lg the model stays small and un-pinned (plain scroll, no runway).
+@media (min-width: 992px) {
+  .model-stage {
+    aspect-ratio: 3 / 4;
+    max-height: 68vh;
+  }
+}
+
+#duoCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  // Both axes are handled ourselves (horizontal = orbit, vertical = fold),
+  // so the browser must not intercept either for scroll/zoom.
+  touch-action: none;
+  cursor: grab;
+}
+
+#duoCanvas:active {
+  cursor: grabbing;
+}
+
+.model-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.model-loading.is-hidden {
+  opacity: 0;
+}
+
+.model-glow {
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 50%;
+  width: 70%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--glow), 0.45), transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+.camera-btn {
+  width: 2.4rem;
+  height: 2.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
