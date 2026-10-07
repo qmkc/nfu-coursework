@@ -1,0 +1,21 @@
+/* Shared top-of-page navigation between index.html and polygon-mesh/index.html.
+   viewer/index.html intentionally has no page nav (kept as a clean full-screen tool). */
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.top a {
+  font-size: 14px;
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  text-decoration: none;
+  color: var(--ink);
+  background: var(--surface);
+}
+.top a[aria-current='page'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}

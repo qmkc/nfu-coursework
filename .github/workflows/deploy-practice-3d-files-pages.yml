@@ -1,0 +1,54 @@
+name: Practice 3D Files - Pages Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-practice-3d-files-pages.yml'
+      - '115-1/data-structure/grouping/Practice-3D-files/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Pages artifact
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Static HTML/CSS/JS, no bundler — "build" just means assembling the
+      # Pages artifact so the deployed URL mirrors the repo path, e.g.
+      # https://<user>.github.io/<repo>/115-1/data-structure/grouping/Practice-3D-files/
+      - name: Assemble site (preserve repo path under Pages root)
+        run: |
+          set -euo pipefail
+          dest="site/115-1/data-structure/grouping"
+          mkdir -p "$dest"
+          cp -r 115-1/data-structure/grouping/Practice-3D-files "$dest/Practice-3D-files"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

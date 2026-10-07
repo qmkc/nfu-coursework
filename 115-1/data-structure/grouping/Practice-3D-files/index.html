@@ -1,0 +1,908 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>網格種類與 3D 檔案格式</title>
+    <link rel="stylesheet" href="nav.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="page">
+      <nav class="top" aria-label="頁面">
+        <a href="./" aria-current="page">網格與格式介紹</a>
+        <a href="polygon-mesh/">Polygon Mesh 網格筆記</a>
+        <a href="viewer/">3D 檔案檢視器</a>
+      </nav>
+
+      <header>
+        <h1>網格種類與 3D 檔案格式</h1>
+        <p class="lede">
+          先看三種網格：三角、Quad、四面體；再看四種檔案格式：STL、PLY、OBJ、VTP。每張卡片上方的小模型畫出它最有代表性的特徵，可以拖曳轉動。
+        </p>
+      </header>
+
+      <section id="meshes">
+        <h2>三種網格</h2>
+        <div class="cards three">
+          <article class="card">
+            <div class="pv">
+              <canvas
+                id="pv-tri"
+                tabindex="0"
+                aria-label="三角網格預覽：由三角形組成的球，可拖曳旋轉"
+              ></canvas
+              ><span>拖曳旋轉</span>
+            </div>
+            <div class="body">
+              <h3>三角網格<span>triangle mesh</span></h3>
+              <p class="see">
+                圖中的球全由三角形拼成。三個點一定在同一個平面上，所以任何表面都切得出來。
+              </p>
+              <dl>
+                <dt>描述</dt>
+                <dd>表面</dd>
+                <dt>強項</dt>
+                <dd>GPU 原生，演算法最單純，自動生成容易</dd>
+                <dt>弱點</dt>
+                <dd>沒有方向性，細分後容易有皺摺</dd>
+                <dt>常用在</dt>
+                <dd>遊戲、3D 列印、3D 掃描</dd>
+                <dt>可存成</dt>
+                <dd>STL、PLY、OBJ、VTP 都可以</dd>
+              </dl>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="pv">
+              <canvas
+                id="pv-quad"
+                tabindex="0"
+                aria-label="Quad 網格預覽：由四邊形組成的球，可拖曳旋轉"
+              ></canvas
+              ><span>拖曳旋轉</span>
+            </div>
+            <div class="body">
+              <h3>Quad 網格<span>quad mesh</span></h3>
+              <p class="see">
+                圖中的球全由四邊形拼成，格線一圈一圈連成邊環，細分後依然平滑。
+              </p>
+              <dl>
+                <dt>描述</dt>
+                <dd>表面</dd>
+                <dt>強項</dt>
+                <dd>邊環清楚，細分曲面平滑，彎曲變形好控制</dd>
+                <dt>弱點</dt>
+                <dd>四個點可能不共面，好的佈線常要人工調整</dd>
+                <dt>常用在</dt>
+                <dd>角色與影視建模</dd>
+                <dt>可存成</dt>
+                <dd>PLY、OBJ、VTP；STL 只收三角形，會被切開</dd>
+              </dl>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="pv">
+              <canvas
+                id="pv-tet"
+                tabindex="0"
+                aria-label="四面體網格預覽：切開的實心球，露出內部縮小的四面體，可拖曳旋轉"
+              ></canvas
+              ><span>拖曳旋轉</span>
+            </div>
+            <div class="body">
+              <h3>四面體網格<span>tetrahedral mesh</span></h3>
+              <p class="see">
+                圖中的球被切開，每個四面體都縮小一點：看得到裡面不是空的，連內部也填滿。
+              </p>
+              <dl>
+                <dt>描述</dt>
+                <dd>體積（內部）</dd>
+                <dt>強項</dt>
+                <dd>任意形狀都能自動填滿，是模擬用的最小體積單元</dd>
+                <dt>弱點</dt>
+                <dd>元素數量隨體積增加，比表面網格大很多</dd>
+                <dt>常用在</dt>
+                <dd>結構、熱傳、軟體變形模擬</dd>
+                <dt>可存成</dt>
+                <dd>下面四種都只存表面；要用 VTU、MSH、MEDIT</dd>
+              </dl>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="formats">
+        <h2>四種檔案格式</h2>
+        <div class="cards">
+          <article class="card">
+            <div class="pv">
+              <canvas
+                id="pv-stl"
+                tabindex="0"
+                aria-label="STL 預覽：一顆由彼此分開的三角形組成的球，可拖曳旋轉"
+              ></canvas
+              ><span>拖曳旋轉</span>
+            </div>
+            <div class="body">
+              <h3>STL<span>.stl</span></h3>
+              <p class="see">
+                圖中每個三角形都是分開的：STL 不共用頂點，80 個三角形就寫 240
+                個頂點。
+              </p>
+              <dl>
+                <dt>編碼</dt>
+                <dd>文字或二進位，兩種都常見</dd>
+                <dt>結構</dt>
+                <dd>一串獨立的三角形，每個帶一個面法線，沒有索引</dd>
+                <dt>還能存</dt>
+                <dd>沒有。不存顏色、單位、材質</dd>
+                <dt>常用在</dt>
+                <dd>3D 列印、CAD 匯出</dd>
+              </dl>
+              <pre>
+facet normal 0.985726 -0.013175 -0.16784
+ outer loop
+  vertex 1.056866 0.069838 -0.083342
+  vertex 1.063648 0.090092 -0.045102
+  vertex 1.069983 0.00196 -0.00098
+ endloop
+endfacet</pre
+              >
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="pv">
+              <canvas
+                id="pv-ply"
+                tabindex="0"
+                aria-label="PLY 預覽：每個頂點帶有不同顏色的球，可拖曳旋轉"
+              ></canvas
+              ><span>拖曳旋轉</span>
+            </div>
+            <div class="body">
+              <h3>PLY<span>.ply</span></h3>
+              <p class="see">
+                圖中每個頂點有自己的顏色：PLY
+                可以替頂點加任意屬性，也可以只有點、沒有面。
+              </p>
+              <dl>
+                <dt>編碼</dt>
+                <dd>文字標頭，資料可以是文字或二進位</dd>
+                <dt>結構</dt>
+                <dd>標頭宣告元素與屬性，接著是頂點表、面表</dd>
+                <dt>還能存</dt>
+                <dd>顏色、法線、信心值等自訂屬性</dd>
+                <dt>常用在</dt>
+                <dd>3D 掃描、點雲、研究資料集</dd>
+              </dl>
+              <pre>
+ply
+format ascii 1.0
+element vertex 162
+property float x
+property float y
+property float z
+property uchar red
+...
+end_header</pre
+              >
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="pv">
+              <canvas
+                id="pv-obj"
+                tabindex="0"
+                aria-label="OBJ 預覽：由四邊形組成、帶棋盤格貼圖的甜甜圈，可拖曳旋轉"
+              ></canvas
+              ><span>拖曳旋轉</span>
+            </div>
+            <div class="body">
+              <h3>OBJ<span>.obj + .mtl</span></h3>
+              <p class="see">
+                圖中的面是四邊形，頂點由相鄰的面共用；棋盤格代表 OBJ 能存的 UV
+                貼圖座標。
+              </p>
+              <dl>
+                <dt>編碼</dt>
+                <dd>只有文字</dd>
+                <dt>結構</dt>
+                <dd>每行一個關鍵字：v 頂點、f 面，索引從 1 開始</dd>
+                <dt>還能存</dt>
+                <dd>UV（vt）、法線（vn）、材質群組；面可以是多邊形</dd>
+                <dt>常用在</dt>
+                <dd>建模軟體之間交換、教學</dd>
+              </dl>
+              <pre>
+v 1.0 0.0 0.0
+v 0.96 0.16 0.0
+vt 0.0 0.0
+vt 0.0625 0.0
+...
+f 1/1 2/2 10/10 9/9</pre
+              >
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="pv">
+              <canvas
+                id="pv-vtp"
+                tabindex="0"
+                aria-label="VTP 預覽：表面依純量值上色的起伏球體，可拖曳旋轉"
+              ></canvas
+              ><span>拖曳旋轉</span>
+            </div>
+            <div class="body">
+              <h3>VTP<span>.vtp（VTK XML PolyData）</span></h3>
+              <p class="see">
+                圖中的顏色是每個點上的一個數值：VTP
+                能在點或面上掛資料陣列，例如溫度、壓力。
+              </p>
+              <dl>
+                <dt>編碼</dt>
+                <dd>XML；陣列可用文字、base64 二進位，還能 zlib 壓縮</dd>
+                <dt>結構</dt>
+                <dd>Points，加上 Polys 的 connectivity 與 offsets</dd>
+                <dt>還能存</dt>
+                <dd>純量場、向量場等資料陣列</dd>
+                <dt>常用在</dt>
+                <dd>VTK、ParaView，科學與醫學視覺化</dd>
+              </dl>
+              <pre>
+&lt;Piece NumberOfPoints="642" NumberOfPolys="1280"&gt;
+ &lt;PointData Scalars="height"&gt;
+  &lt;DataArray type="Float32" Name="height"&gt; ...
+ &lt;Points&gt;
+  &lt;DataArray type="Float32" NumberOfComponents="3"&gt; ...
+ &lt;Polys&gt;
+  &lt;DataArray type="Int32" Name="connectivity"&gt; ...</pre
+              >
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="size">
+        <h2>檔案大小</h2>
+        <p>
+          把同一個三角網格（3,200 個頂點、6,400
+          個三角形，只存位置）存成各種格式，實際量到的大小：
+        </p>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>格式</th>
+                <th>編碼</th>
+                <th class="right">檔案大小</th>
+                <th class="right">每個三角形</th>
+                <th>相對大小</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>STL</th>
+                <td>文字</td>
+                <td class="num">1,141 KB</td>
+                <td class="num">183 B</td>
+                <td class="barcell">
+                  <div class="bar" style="width: 100%"></div>
+                </td>
+              </tr>
+              <tr>
+                <th>STL</th>
+                <td>二進位</td>
+                <td class="num">313 KB</td>
+                <td class="num">50 B</td>
+                <td class="barcell">
+                  <div class="bar" style="width: 27.4%"></div>
+                </td>
+              </tr>
+              <tr>
+                <th>VTP</th>
+                <td>XML 文字</td>
+                <td class="num">210 KB</td>
+                <td class="num">34 B</td>
+                <td class="barcell">
+                  <div class="bar" style="width: 18.4%"></div>
+                </td>
+              </tr>
+              <tr>
+                <th>OBJ</th>
+                <td>文字</td>
+                <td class="num">194 KB</td>
+                <td class="num">31 B</td>
+                <td class="barcell">
+                  <div class="bar" style="width: 17%"></div>
+                </td>
+              </tr>
+              <tr>
+                <th>PLY</th>
+                <td>文字</td>
+                <td class="num">188 KB</td>
+                <td class="num">30 B</td>
+                <td class="barcell">
+                  <div class="bar" style="width: 16.5%"></div>
+                </td>
+              </tr>
+              <tr>
+                <th>PLY</th>
+                <td>二進位</td>
+                <td class="num">119 KB</td>
+                <td class="num">19 B</td>
+                <td class="barcell">
+                  <div class="bar" style="width: 10.4%"></div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <dl class="terms">
+          <div>
+            <dt>STL 最大</dt>
+            <dd>
+              文字 STL 是 OBJ 的 5.9 倍。頂點不共用，同一個點平均重複寫 6
+              次，就是上面 STL 預覽畫的樣子。
+            </dd>
+          </div>
+          <div>
+            <dt>二進位比文字小</dt>
+            <dd>
+              STL 小 73%，PLY 小 37%。一個座標寫成文字要 8 到 10
+              個字元，二進位固定 4 bytes。
+            </dd>
+          </div>
+          <div>
+            <dt>有索引的文字檔差不多</dt>
+            <dd>
+              OBJ、PLY、VTP 都是「頂點表 + 索引表」，落在 188 到 210 KB。VTP
+              多了 XML 標籤和 offsets 陣列。
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <section id="encoding">
+        <h2>編碼方式</h2>
+        <dl class="terms">
+          <div>
+            <dt>文字（ASCII）</dt>
+            <dd>
+              數字寫成字元，能用記事本打開、好除錯，但檔案大、讀得慢。OBJ
+              只有這種；STL、PLY 也有文字版。
+            </dd>
+          </div>
+          <div>
+            <dt>二進位</dt>
+            <dd>
+              數字直接存成 float32、int32，通常是
+              little-endian。小、快、不損失精度。STL、PLY 有二進位版。
+            </dd>
+          </div>
+          <div>
+            <dt>XML 容器</dt>
+            <dd>
+              VTP 用 XML 描述結構，資料陣列可以寫成文字，也可以用 base64
+              內嵌二進位，再加 zlib 壓縮。
+            </dd>
+          </div>
+        </dl>
+      </section>
+    </div>
+
+    <script>
+      (function () {
+        /* ---------- small vector kit ---------- */
+        const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+        const cross = (a, b) => [
+          a[1] * b[2] - a[2] * b[1],
+          a[2] * b[0] - a[0] * b[2],
+          a[0] * b[1] - a[1] * b[0],
+        ];
+        const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+        const unit = (a) => {
+          const l = Math.hypot(a[0], a[1], a[2]) || 1;
+          return [a[0] / l, a[1] / l, a[2] / l];
+        };
+        const rotY = (a) => {
+          const c = Math.cos(a),
+            s = Math.sin(a);
+          return [c, 0, s, 0, 1, 0, -s, 0, c];
+        };
+        const rotX = (a) => {
+          const c = Math.cos(a),
+            s = Math.sin(a);
+          return [1, 0, 0, 0, c, -s, 0, s, c];
+        };
+        const mul = (a, b) => {
+          const o = [];
+          for (let r = 0; r < 3; r++)
+            for (let c = 0; c < 3; c++)
+              o.push(
+                a[r * 3] * b[c] +
+                  a[r * 3 + 1] * b[3 + c] +
+                  a[r * 3 + 2] * b[6 + c],
+              );
+          return o;
+        };
+        const apply = (m, p) => [
+          m[0] * p[0] + m[1] * p[1] + m[2] * p[2],
+          m[3] * p[0] + m[4] * p[1] + m[5] * p[2],
+          m[6] * p[0] + m[7] * p[1] + m[8] * p[2],
+        ];
+        const css = (n) => {
+          const v = getComputedStyle(document.documentElement)
+            .getPropertyValue(n)
+            .trim()
+            .replace('#', '');
+          return [0, 2, 4].map((i) => parseInt(v.substr(i, 2), 16));
+        };
+        const rgb = (c, k) =>
+          'rgb(' +
+          c.map((v) => Math.round(Math.min(255, v * k))).join(',') +
+          ')';
+
+        /* ---------- meshes ---------- */
+        function icosphere(level) {
+          const t = (1 + Math.sqrt(5)) / 2;
+          const V = [
+            [-1, t, 0],
+            [1, t, 0],
+            [-1, -t, 0],
+            [1, -t, 0],
+            [0, -1, t],
+            [0, 1, t],
+            [0, -1, -t],
+            [0, 1, -t],
+            [t, 0, -1],
+            [t, 0, 1],
+            [-t, 0, -1],
+            [-t, 0, 1],
+          ].map(unit);
+          let F = [
+            [0, 11, 5],
+            [0, 5, 1],
+            [0, 1, 7],
+            [0, 7, 10],
+            [0, 10, 11],
+            [1, 5, 9],
+            [5, 11, 4],
+            [11, 10, 2],
+            [10, 7, 6],
+            [7, 1, 8],
+            [3, 9, 4],
+            [3, 4, 2],
+            [3, 2, 6],
+            [3, 6, 8],
+            [3, 8, 9],
+            [4, 9, 5],
+            [2, 4, 11],
+            [6, 2, 10],
+            [8, 6, 7],
+            [9, 8, 1],
+          ];
+          for (let l = 0; l < level; l++) {
+            const cache = new Map(),
+              next = [];
+            const mid = (a, b) => {
+              const k = a < b ? a + '_' + b : b + '_' + a;
+              if (!cache.has(k)) {
+                cache.set(k, V.length);
+                V.push(
+                  unit([
+                    V[a][0] + V[b][0],
+                    V[a][1] + V[b][1],
+                    V[a][2] + V[b][2],
+                  ]),
+                );
+              }
+              return cache.get(k);
+            };
+            for (const [a, b, c] of F) {
+              const ab = mid(a, b),
+                bc = mid(b, c),
+                ca = mid(c, a);
+              next.push([a, ab, ca], [b, bc, ab], [c, ca, bc], [ab, bc, ca]);
+            }
+            F = next;
+          }
+          return { V, F };
+        }
+        const outward = (q) =>
+          dot(
+            cross(sub(q[1], q[0]), sub(q[2], q[0])),
+            q[0].map((c, k) => (c + q[1][k] + q[2][k]) / 3),
+          ) < 0
+            ? q.slice().reverse()
+            : q;
+        function cubeSphere(n) {
+          // every cube face cut into n×n quads, then pushed out onto the sphere
+          const quads = [],
+            g = (i) => -1 + (2 * i) / n;
+          for (let axis = 0; axis < 3; axis++)
+            for (const side of [-1, 1])
+              for (let i = 0; i < n; i++)
+                for (let j = 0; j < n; j++) {
+                  const pt = (a, b) => {
+                    const v = [0, 0, 0];
+                    v[axis] = side;
+                    v[(axis + 1) % 3] = Math.tan((g(a) * Math.PI) / 4);
+                    v[(axis + 2) % 3] = Math.tan((g(b) * Math.PI) / 4);
+                    return unit(v);
+                  };
+                  quads.push(
+                    outward([
+                      pt(i, j),
+                      pt(i + 1, j),
+                      pt(i + 1, j + 1),
+                      pt(i, j + 1),
+                    ]),
+                  );
+                }
+          return quads;
+        }
+        function tetBall(n) {
+          // n×n×n cubes, 6 tetrahedra each, rounded into a ball
+          const V = [],
+            T = [],
+            id = (i, j, k) => (i * (n + 1) + j) * (n + 1) + k;
+          for (let i = 0; i <= n; i++)
+            for (let j = 0; j <= n; j++)
+              for (let k = 0; k <= n; k++) {
+                const q = [
+                    -1 + (2 * i) / n,
+                    -1 + (2 * j) / n,
+                    -1 + (2 * k) / n,
+                  ],
+                  m = Math.max(...q.map(Math.abs)),
+                  l = Math.hypot(...q),
+                  f = l ? m / l : 0;
+                V.push(q.map((c) => c * f));
+              }
+          for (let i = 0; i < n; i++)
+            for (let j = 0; j < n; j++)
+              for (let k = 0; k < n; k++)
+                for (const perm of [
+                  [0, 1, 2],
+                  [0, 2, 1],
+                  [1, 0, 2],
+                  [1, 2, 0],
+                  [2, 0, 1],
+                  [2, 1, 0],
+                ]) {
+                  const c = [i, j, k],
+                    t = [V[id(i, j, k)]];
+                  for (const ax of perm) {
+                    c[ax]++;
+                    t.push(V[id(c[0], c[1], c[2])]);
+                  }
+                  T.push(t);
+                }
+          return T;
+        }
+        const VIRIDIS = [
+          [68, 1, 84],
+          [59, 82, 139],
+          [33, 145, 140],
+          [94, 201, 98],
+          [253, 231, 37],
+        ];
+        const ramp = (t) => {
+          const x = Math.min(0.9999, Math.max(0, t)) * 4,
+            i = Math.floor(x),
+            f = x - i;
+          return VIRIDIS[i].map((v, k) => v + (VIRIDIS[i + 1][k] - v) * f);
+        };
+
+        // each scene: polys = [{p:[points], c: colour key or [r,g,b]}], dots = [{p, c}]
+        const SCENES = {
+          tri() {
+            const { V, F } = icosphere(2);
+            return {
+              polys: F.map((f) => ({ p: f.map((i) => V[i]), c: 'mesh' })),
+              dots: [],
+              edges: true,
+            };
+          },
+          quad() {
+            return {
+              polys: cubeSphere(6).map((q) => ({ p: q, c: 'mesh' })),
+              dots: [],
+              edges: true,
+            };
+          },
+          tet() {
+            // cut open and shrunk, so the inside is visible
+            const polys = [];
+            for (const t of tetBall(3)) {
+              const g = [0, 1, 2].map(
+                (k) => (t[0][k] + t[1][k] + t[2][k] + t[3][k]) / 4,
+              );
+              if (g[0] > 0.2) continue;
+              const q = t.map((v) => v.map((c, k) => g[k] + (c - g[k]) * 0.8));
+              for (const f of [
+                [0, 2, 1],
+                [0, 1, 3],
+                [0, 3, 2],
+                [1, 2, 3],
+              ]) {
+                let tri = f.map((i) => q[i]);
+                const n = cross(sub(tri[1], tri[0]), sub(tri[2], tri[0])),
+                  c = tri[0].map((v, k) => (v + tri[1][k] + tri[2][k]) / 3);
+                if (dot(n, sub(c, g)) < 0) tri = tri.reverse();
+                polys.push({ p: tri, c: 'mesh' });
+              }
+            }
+            return { polys, dots: [], edges: true };
+          },
+          stl() {
+            // triangle soup: every triangle keeps its own three vertices
+            const { V, F } = icosphere(1),
+              polys = [],
+              dots = [];
+            for (const f of F) {
+              const p = f.map((i) => V[i]),
+                g = [0, 1, 2].map((k) => (p[0][k] + p[1][k] + p[2][k]) / 3);
+              const q = p.map((v) => v.map((c, k) => g[k] + (c - g[k]) * 0.82));
+              polys.push({ p: q, c: 'mesh' });
+              q.forEach((v) => dots.push({ p: v, c: 'edge', r: 2.2 }));
+            }
+            return { polys, dots, edges: true, top: true };
+          },
+          ply() {
+            // per-vertex colour, drawn as coloured points over a faint surface
+            const { V, F } = icosphere(2);
+            const col = V.map((v) => [
+              110 + 120 * (0.5 + 0.5 * v[0]),
+              90 + 130 * (0.5 + 0.5 * v[1]),
+              120 + 120 * (0.5 + 0.5 * v[2]),
+            ]);
+            const polys = F.map((f) => ({
+              p: f.map((i) => V[i].map((c) => c * 0.985)),
+              c: [0, 1, 2].map(
+                (k) => (col[f[0]][k] + col[f[1]][k] + col[f[2]][k]) / 3,
+              ),
+              soft: true,
+            }));
+            return {
+              polys,
+              dots: V.map((v, i) => ({ p: v, c: col[i], r: 4, ring: true })),
+              edges: false,
+              top: true,
+            };
+          },
+          obj() {
+            // quads with shared vertices, checker = UV coordinates
+            const nu = 16,
+              nv = 8,
+              R = 0.66,
+              r = 0.32,
+              V = [],
+              polys = [];
+            for (let i = 0; i < nu; i++)
+              for (let j = 0; j < nv; j++) {
+                const u = (2 * Math.PI * i) / nu,
+                  v = (2 * Math.PI * j) / nv,
+                  d = R + r * Math.cos(v);
+                V.push([d * Math.cos(u), r * Math.sin(v), d * Math.sin(u)]);
+              }
+            for (let i = 0; i < nu; i++)
+              for (let j = 0; j < nv; j++) {
+                const i2 = (i + 1) % nu,
+                  j2 = (j + 1) % nv;
+                polys.push({
+                  p: [
+                    V[i * nv + j],
+                    V[i * nv + j2],
+                    V[i2 * nv + j2],
+                    V[i2 * nv + j],
+                  ],
+                  c: (i + j) % 2 ? 'mesh' : 'meshAlt',
+                });
+              }
+            return {
+              polys,
+              dots: V.map((v) => ({ p: v, c: 'edge', r: 2.4 })),
+              edges: true,
+            };
+          },
+          vtp() {
+            // scalar field on the points, shown through a colour map
+            const { V, F } = icosphere(3);
+            const s = V.map(
+              (v) =>
+                Math.sin(3.2 * v[0]) * Math.sin(3.2 * v[1]) +
+                0.6 * Math.sin(2.6 * v[2]),
+            );
+            const lo = Math.min(...s),
+              hi = Math.max(...s),
+              P = V.map((v, i) =>
+                v.map((c) => c * (0.88 + (0.1 * (s[i] - lo)) / (hi - lo))),
+              );
+            const polys = F.map((f) => ({
+              p: f.map((i) => P[i]),
+              c: ramp(((s[f[0]] + s[f[1]] + s[f[2]]) / 3 - lo) / (hi - lo)),
+            }));
+            return { polys, dots: [], edges: false, legend: true };
+          },
+        };
+
+        /* ---------- canvas renderer: sort back to front, flat shade ---------- */
+        const LIGHT = unit([0.35, 0.55, 1]);
+        const START = mul(rotX(0.4), rotY(-0.55));
+        const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const views = Object.keys(SCENES).map((id) => {
+          const canvas = document.getElementById('pv-' + id),
+            view = {
+              canvas,
+              ctx: canvas.getContext('2d'),
+              scene: SCENES[id](),
+              R: START.slice(),
+              dirty: true,
+              drag: null,
+            };
+          canvas.addEventListener('pointerdown', (e) => {
+            canvas.setPointerCapture(e.pointerId);
+            view.drag = [e.clientX, e.clientY];
+          });
+          canvas.addEventListener('pointermove', (e) => {
+            if (!view.drag) return;
+            turn(
+              view,
+              (e.clientY - view.drag[1]) * 0.01,
+              (e.clientX - view.drag[0]) * 0.01,
+            );
+            view.drag = [e.clientX, e.clientY];
+          });
+          const end = () => {
+            view.drag = null;
+          };
+          canvas.addEventListener('pointerup', end);
+          canvas.addEventListener('pointercancel', end);
+          canvas.addEventListener('keydown', (e) => {
+            const k = {
+              ArrowLeft: [0, -0.15],
+              ArrowRight: [0, 0.15],
+              ArrowUp: [-0.15, 0],
+              ArrowDown: [0.15, 0],
+            }[e.key];
+            if (k) {
+              e.preventDefault();
+              turn(view, k[0], k[1]);
+            }
+          });
+          new ResizeObserver(() => {
+            view.dirty = true;
+          }).observe(canvas);
+          return view;
+        });
+        function turn(view, ax, ay) {
+          const m = mul(mul(rotY(ay), rotX(ax)), view.R),
+            r0 = unit(m.slice(0, 3)),
+            t = m.slice(3, 6),
+            d = dot(r0, t);
+          const r1 = unit([
+            t[0] - d * r0[0],
+            t[1] - d * r0[1],
+            t[2] - d * r0[2],
+          ]);
+          view.R = [...r0, ...r1, ...cross(r0, r1)];
+          view.dirty = true;
+        }
+        function draw(view, pal) {
+          const { canvas, ctx, scene, R } = view,
+            dpr = Math.min(window.devicePixelRatio || 1, 2);
+          const w = Math.round(canvas.clientWidth * dpr),
+            h = Math.round(canvas.clientHeight * dpr);
+          if (!w || !h) return;
+          if (canvas.width !== w || canvas.height !== h) {
+            canvas.width = w;
+            canvas.height = h;
+          }
+          ctx.clearRect(0, 0, w, h);
+          const k = Math.min(w, h) * 0.43,
+            X = (p) => w / 2 + p[0] * k,
+            Y = (p) => h / 2 - p[1] * k,
+            items = [];
+          const colour = (c) => (typeof c === 'string' ? pal[c] : c);
+          for (const poly of scene.polys) {
+            const p = poly.p.map((v) => apply(R, v)),
+              n = unit(cross(sub(p[1], p[0]), sub(p[2], p[0])));
+            if (n[2] <= 0 && !scene.twoSided) continue;
+            items.push({
+              z: p.reduce((s, v) => s + v[2], 0) / p.length,
+              p,
+              n,
+              poly,
+            });
+          }
+          for (const d of scene.dots) {
+            const p = apply(R, d.p);
+            if (scene.top ? p[2] > 0.08 : p[2] > -0.15)
+              items.push({ z: scene.top ? 9 : p[2] + 0.02, dot: d, p });
+          }
+          items.sort((a, b) => a.z - b.z);
+          ctx.lineJoin = 'round';
+          for (const it of items) {
+            if (it.dot) {
+              ctx.beginPath();
+              ctx.arc(X(it.p), Y(it.p), it.dot.r * dpr, 0, 6.2832);
+              ctx.fillStyle = rgb(colour(it.dot.c), 1);
+              ctx.fill();
+              if (it.dot.ring) {
+                ctx.lineWidth = dpr;
+                ctx.strokeStyle = rgb(pal.edge, 1);
+                ctx.stroke();
+              }
+              continue;
+            }
+            const back = it.n[2] <= 0,
+              lit = Math.max(dot(back ? it.n.map((v) => -v) : it.n, LIGHT), 0);
+            ctx.beginPath();
+            it.p.forEach((v, i) =>
+              i ? ctx.lineTo(X(v), Y(v)) : ctx.moveTo(X(v), Y(v)),
+            );
+            ctx.closePath();
+            ctx.fillStyle = rgb(
+              back ? pal.back : colour(it.poly.c),
+              it.poly.soft ? 0.82 + 0.18 * lit : 0.5 + 0.5 * lit,
+            );
+            ctx.fill();
+            ctx.lineWidth = dpr * (scene.edges ? 1.1 : 0.6);
+            ctx.strokeStyle = scene.edges ? rgb(pal.edge, 1) : ctx.fillStyle;
+            ctx.stroke();
+          }
+          if (scene.legend) {
+            const x = 12 * dpr,
+              y = h - 20 * dpr,
+              lw = 110 * dpr,
+              g = ctx.createLinearGradient(x, 0, x + lw, 0);
+            VIRIDIS.forEach((c, i) => g.addColorStop(i / 4, rgb(c, 1)));
+            ctx.fillStyle = g;
+            ctx.fillRect(x, y, lw, 8 * dpr);
+            ctx.fillStyle = rgb(pal.ink, 1);
+            ctx.font = 11 * dpr + 'px sans-serif';
+            ctx.fillText('低', x, y - 5 * dpr);
+            ctx.textAlign = 'right';
+            ctx.fillText('高', x + lw, y - 5 * dpr);
+            ctx.textAlign = 'left';
+          }
+        }
+        let last = 0;
+        function frame(t) {
+          const dt = Math.min(0.05, (t - last) / 1000);
+          last = t;
+          const pal = {
+            mesh: css('--mesh'),
+            meshAlt: css('--mesh-alt'),
+            back: css('--mesh-back'),
+            edge: css('--edge'),
+            ink: css('--ink'),
+          };
+          for (const v of views) {
+            if (!still && !v.drag) turn(v, 0, dt * 0.3);
+            if (v.dirty) {
+              draw(v, pal);
+              v.dirty = false;
+            }
+          }
+          requestAnimationFrame(frame);
+        }
+        matchMedia('(prefers-color-scheme: dark)').addEventListener(
+          'change',
+          () =>
+            views.forEach((v) => {
+              v.dirty = true;
+            }),
+        );
+        requestAnimationFrame(frame);
+      })();
+    </script>
+  </body>
+</html>

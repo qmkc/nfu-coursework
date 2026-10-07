@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>3D 檔案檢視器</title>
+    <link rel="stylesheet" href="style.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <h1>3D 檔案檢視器</h1>
+        <span class="types">Three.js　.stl　.ply　.obj　.vtp</span>
+      </header>
+
+      <div class="bar">
+        <label class="filebtn"
+          >上傳 3D 檔案<input
+            type="file"
+            id="file"
+            accept=".stl,.ply,.obj,.vtp,.vtk"
+        /></label>
+        <button type="button" id="wire" aria-pressed="true">線框</button>
+        <button type="button" id="spin" aria-pressed="false">自動旋轉</button>
+        <button type="button" id="reset">重設視角</button>
+      </div>
+
+      <div class="work">
+        <div class="stage" id="stage">
+          <canvas id="view" aria-label="3D 檢視區"></canvas>
+          <div class="empty" id="empty">
+            <b>上傳 3D 檔案</b
+            ><span>按「上傳 3D 檔案」，或把檔案直接拖進這裡</span>
+          </div>
+          <div class="hud" id="hud" hidden></div>
+        </div>
+        <div class="side">
+          <div class="box">
+            <div class="label">檔案資訊</div>
+            <dl>
+              <dt>檔名</dt>
+              <dd id="i-name">—</dd>
+              <dt>載入器</dt>
+              <dd id="i-loader">—</dd>
+              <dt>檔案大小</dt>
+              <dd id="i-size">—</dd>
+              <dt>頂點</dt>
+              <dd id="i-verts">—</dd>
+              <dt>三角形</dt>
+              <dd id="i-tris">—</dd>
+            </dl>
+          </div>
+          <div class="box">
+            <div class="label">控制</div>
+            <ul class="keys">
+              <li><b>左鍵拖曳</b>旋轉</li>
+              <li><b>右鍵拖曳</b>平移</li>
+              <li><b>滾輪</b>縮放</li>
+              <li><b>觸控</b>單指旋轉，雙指平移與縮放</li>
+            </ul>
+          </div>
+          <p class="status" id="status" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import * as THREE from 'three';
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+      import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+      import { PLYLoader } from 'three/addons/loaders/PLYLoader.js';
+      import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+      import { VTKLoader } from 'three/addons/loaders/VTKLoader.js';
+
+      const $ = (id) => document.getElementById(id);
+      const canvas = $('view'),
+        stage = $('stage');
+      const css = (name) =>
+        getComputedStyle(document.documentElement)
+          .getPropertyValue(name)
+          .trim();
+      const num = (n) => n.toLocaleString('en-US');
+
+      /* ---------- scene ---------- */
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(css('--stage'));
+      const camera = new THREE.PerspectiveCamera(40, 1, 0.01, 100);
+      scene.add(camera, new THREE.HemisphereLight(0xffffff, 0x445566, 1.4));
+      const key = new THREE.DirectionalLight(0xffffff, 2.2);
+      key.position.set(1, 1.5, 2);
+      camera.add(key); // the light follows the camera, so the lit side always faces you
+      const grid = new THREE.GridHelper(4, 16, css('--grid'), css('--grid'));
+      grid.position.y = -1.05;
+      scene.add(grid);
+
+      // OrbitControls: left drag = rotate, right drag = pan, wheel = zoom
+      const controls = new OrbitControls(camera, canvas);
+      controls.enableDamping = true;
+      controls.screenSpacePanning = true;
+      const home = () => {
+        camera.position.set(1.9, 1.3, 2.6);
+        controls.target.set(0, 0, 0);
+        controls.update();
+      };
+      home();
+
+      // draw only when something changed
+      let dirty = true;
+      controls.addEventListener('change', () => {
+        dirty = true;
+      });
+      new ResizeObserver(() => {
+        const w = canvas.clientWidth,
+          h = canvas.clientHeight;
+        if (!w || !h) return;
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        dirty = true;
+      }).observe(canvas);
+      renderer.setAnimationLoop(() => {
+        controls.update();
+        if (dirty) {
+          dirty = false;
+          renderer.render(scene, camera);
+        }
+      });
+
+      /* ---------- model ---------- */
+      const surface = {
+        roughness: 0.55,
+        metalness: 0.05,
+        side: THREE.DoubleSide,
+        polygonOffset: true,
+        polygonOffsetFactor: 1,
+        polygonOffsetUnits: 1,
+      };
+      const material = new THREE.MeshStandardMaterial({
+        color: css('--mesh'),
+        ...surface,
+      });
+      const colourMaterial = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        ...surface,
+      }); // for files that carry vertex colours
+      const wireMaterial = new THREE.LineBasicMaterial({
+        color: css('--wire'),
+        transparent: true,
+        opacity: 0.35,
+      });
+      let model = null,
+        wires = [];
+      const pressed = (id) => $(id).getAttribute('aria-pressed') === 'true';
+
+      const LOADERS = {
+        stl: ['STLLoader', (buf) => new STLLoader().parse(buf)],
+        ply: ['PLYLoader', (buf) => new PLYLoader().parse(buf)],
+        vtp: ['VTKLoader', (buf) => new VTKLoader().parse(buf)],
+        vtk: ['VTKLoader', (buf) => new VTKLoader().parse(buf)],
+        obj: [
+          'OBJLoader',
+          (buf) => new OBJLoader().parse(new TextDecoder().decode(buf)),
+        ],
+      };
+
+      function show(result) {
+        const root = result.isBufferGeometry ? new THREE.Mesh(result) : result,
+          newWires = [];
+        let verts = 0,
+          tris = 0;
+        root.traverse((o) => {
+          if (!o.isMesh) return;
+          const g = o.geometry;
+          if (!g.attributes.normal) g.computeVertexNormals();
+          o.material = g.attributes.color ? colourMaterial : material;
+          verts += g.attributes.position.count;
+          tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
+          const w = new THREE.LineSegments(
+            new THREE.WireframeGeometry(g),
+            wireMaterial,
+          );
+          w.visible = pressed('wire');
+          o.add(w);
+          newWires.push(w);
+        });
+        if (!tris) throw new Error('檔案裡沒有可以顯示的面');
+        if (model) {
+          scene.remove(model);
+          model.traverse((o) => o.geometry && o.geometry.dispose());
+        }
+        // centre the model and scale it to a unit sphere so every file fits the view
+        const sphere = new THREE.Box3()
+          .setFromObject(root)
+          .getBoundingSphere(new THREE.Sphere());
+        root.position.sub(sphere.center);
+        model = new THREE.Group();
+        model.add(root);
+        model.scale.setScalar(1 / (sphere.radius || 1));
+        scene.add(model);
+        wires = newWires;
+        home();
+        dirty = true;
+        return { verts, tris };
+      }
+
+      async function load(file) {
+        if (!file) return;
+        const ext = file.name.split('.').pop().toLowerCase(),
+          entry = LOADERS[ext];
+        if (!entry) {
+          $('status').textContent =
+            '不支援 .' + ext + '，請上傳 stl、ply、obj 或 vtp。';
+          return;
+        }
+        $('status').textContent = '';
+        try {
+          const { verts, tris } = show(entry[1](await file.arrayBuffer()));
+          $('empty').hidden = true;
+          $('i-name').textContent = file.name;
+          $('i-loader').textContent = entry[0];
+          $('i-size').textContent = num(Math.round(file.size / 1024)) + ' KB';
+          $('i-verts').textContent = num(verts);
+          $('i-tris').textContent = num(tris);
+        } catch (e) {
+          $('status').textContent =
+            '讀不出 ' +
+            file.name +
+            '：' +
+            (e && e.message ? e.message : '格式有誤');
+        }
+      }
+
+      $('file').addEventListener('change', (e) => {
+        load(e.target.files[0]);
+        e.target.value = '';
+      });
+      stage.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        stage.classList.add('drop');
+      });
+      stage.addEventListener('dragleave', () => stage.classList.remove('drop'));
+      stage.addEventListener('drop', (e) => {
+        e.preventDefault();
+        stage.classList.remove('drop');
+        load(e.dataTransfer.files[0]);
+      });
+
+      const toggle = (id, fn) =>
+        $(id).addEventListener('click', (e) => {
+          const on = !pressed(id);
+          e.currentTarget.setAttribute('aria-pressed', on);
+          fn(on);
+          dirty = true;
+        });
+      toggle('wire', (on) =>
+        wires.forEach((w) => {
+          w.visible = on;
+        }),
+      );
+      toggle('spin', (on) => {
+        controls.autoRotate = on;
+      });
+      $('reset').addEventListener('click', home);
+
+      // show which control is active
+      const hud = $('hud');
+      let hudTimer;
+      const flash = (text, hold) => {
+        hud.textContent = text;
+        hud.hidden = false;
+        clearTimeout(hudTimer);
+        if (!hold)
+          hudTimer = setTimeout(() => {
+            hud.hidden = true;
+          }, 700);
+      };
+      canvas.addEventListener('pointerdown', (e) =>
+        flash(
+          e.button === 2 || e.ctrlKey || e.shiftKey ? '平移' : '旋轉',
+          true,
+        ),
+      );
+      window.addEventListener('pointerup', () => {
+        if (!hud.hidden) flash(hud.textContent, false);
+      });
+      canvas.addEventListener('wheel', () => flash('縮放', false), {
+        passive: true,
+      });
+      canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+      window.__ready = true;
+    </script>
+  </body>
+</html>

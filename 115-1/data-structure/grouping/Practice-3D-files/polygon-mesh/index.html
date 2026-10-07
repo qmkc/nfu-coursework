@@ -1,0 +1,1953 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Polygon Mesh 網格筆記</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap"
+    />
+    <link rel="stylesheet" href="../nav.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+
+<div class="page">
+  <nav class="top" aria-label="頁面">
+    <a href="../">網格與格式介紹</a>
+    <a href="./" aria-current="page">Polygon Mesh 網格筆記</a>
+    <a href="../viewer/">3D 檔案檢視器</a>
+  </nav>
+
+  <header>
+    <div class="eyebrow">Study note · V / E / F / T</div>
+    <h1>Polygon Mesh 網格筆記</h1>
+    <p class="lede">
+      網格是用一堆小元素拼出形狀的方法。這一頁整理三角、Quad、四面體三種元素，常見檔案格式差在哪、用在哪，並附一個可以旋轉、匯出、載入的檢視器。
+    </p>
+    <nav aria-label="頁內導覽">
+      <a href="#basics">基本概念</a>
+      <a href="#lab">三種網格實作</a>
+      <a href="#formats">檔案格式</a>
+      <a href="#size">大小與編碼</a>
+      <a href="#diff">差在哪裡</a>
+      <a href="#uses">用在哪裡</a>
+    </nav>
+  </header>
+
+  <section id="basics">
+    <h2>網格由什麼組成</h2>
+    <p>
+      幾乎所有網格格式存的都是同一件事：一張頂點座標表，加上一張「哪幾個頂點組成一個元素」的索引表。這叫
+      indexed face set。
+    </p>
+    <pre>
+頂點 V = [ (0,0,0), (1,0,0), (1,1,0), (0,1,0) ]
+
+三角形 F = [ (0,1,2), (0,2,3) ]     兩個三角形，共用邊 0–2
+四邊形 F = [ (0,1,2,3) ]            同一塊區域，只要一個 quad</pre
+    >
+    <dl class="terms">
+      <div>
+        <dt>表面網格 vs 體網格</dt>
+        <dd>
+          表面網格只描述外殼（三角形、四邊形）。體網格連內部也填滿（四面體、六面體），模擬才需要。
+        </dd>
+      </div>
+      <div>
+        <dt>拓撲與幾何</dt>
+        <dd>
+          座標是幾何，誰連到誰是拓撲。共用頂點索引才保有拓撲；STL
+          這種各寫各的就丟掉了。
+        </dd>
+      </div>
+      <div>
+        <dt>流形 manifold</dt>
+        <dd>
+          每條邊剛好被兩個面共用、沒有破洞，就是封閉流形。3D
+          列印和四面體生成都要求這件事。
+        </dd>
+      </div>
+      <div>
+        <dt>尤拉示性數</dt>
+        <dd>
+          封閉表面滿足 V − E + F = 2 − 2g，g 是洞的數量。球是 2，甜甜圈是
+          0。檢視器左上角會即時算給你看。
+        </dd>
+      </div>
+      <div>
+        <dt>結構化 vs 非結構化</dt>
+        <dd>
+          結構化網格像棋盤，鄰居靠 (i, j, k)
+          就找得到。非結構化網格要明確列出連接關係，但能貼合任意形狀。
+        </dd>
+      </div>
+      <div>
+        <dt>其他元素</dt>
+        <dd>
+          六面體 hex、稜柱 prism、金字塔 pyramid、任意多面體，以及表面上的 n
+          邊形。CFD 常把它們混在同一個網格裡。
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section id="lab">
+    <h2>三種網格，動手轉一轉</h2>
+    <div class="viewer">
+      <div class="stage" id="stage">
+        <canvas
+          id="gl"
+          tabindex="0"
+          aria-label="3D 網格檢視器。拖曳或方向鍵旋轉，滾輪或加減鍵縮放。"
+        ></canvas>
+        <div class="stats" id="stats"></div>
+        <div class="hint">拖曳旋轉 · 滾輪縮放 · 把檔案拖進來</div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <span class="label">元素</span>
+          <div class="seg" id="kinds">
+            <button type="button" id="k-tri" data-kind="tri">三角網格</button>
+            <button type="button" id="k-quad" data-kind="quad">
+              Quad 網格
+            </button>
+            <button type="button" id="k-tet" data-kind="tet">四面體網格</button>
+            <button type="button" id="k-custom" data-kind="custom" hidden>
+              載入的檔案
+            </button>
+          </div>
+          <p class="about" id="about"></p>
+        </div>
+        <div class="group">
+          <span class="label">調整</span>
+          <label class="slider" id="row-level"
+            ><span>細分</span
+            ><input
+              type="range"
+              id="level"
+              min="1"
+              max="5"
+              step="1"
+              value="3" /><output id="level-out"></output
+          ></label>
+          <label class="slider" id="row-shrink"
+            ><span>收縮</span
+            ><input
+              type="range"
+              id="shrink"
+              min="40"
+              max="100"
+              step="1"
+              value="86" /><output id="shrink-out"></output
+          ></label>
+          <label class="slider" id="row-clip"
+            ><span>剖面</span
+            ><input
+              type="range"
+              id="clip"
+              min="5"
+              max="100"
+              step="1"
+              value="60" /><output id="clip-out"></output
+          ></label>
+        </div>
+        <div class="group">
+          <span class="label">顯示</span>
+          <div class="seg" id="modes">
+            <button type="button" id="m-both" data-mode="both">面 + 線</button>
+            <button type="button" id="m-wire" data-mode="wire">只有線</button>
+            <button type="button" id="m-fill" data-mode="fill">只有面</button>
+          </div>
+          <div class="row">
+            <label class="check"
+              ><input type="checkbox" id="auto" /> 自動旋轉</label
+            >
+            <button type="button" id="reset">重設視角</button>
+          </div>
+        </div>
+        <div class="group">
+          <span class="label">載入自己的檔案</span>
+          <div class="row">
+            <label class="filebtn"
+              >選擇檔案<input
+                type="file"
+                id="file"
+                accept=".obj,.stl,.ply,.off,.vtk,.msh,.mesh"
+            /></label>
+            <span class="legend mono">obj stl ply off vtk msh mesh</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="export">
+      <div class="group">
+        <span class="label">匯出成</span>
+        <div class="seg fmt" id="fmts"></div>
+        <p class="note" id="fmt-note"></p>
+        <div class="row">
+          <button type="button" class="primary" id="download">下載</button>
+          <button type="button" id="copy">複製全文</button>
+        </div>
+        <p class="status" id="status" role="status" aria-live="polite"></p>
+      </div>
+      <div class="group">
+        <span class="label" id="preview-label">檔案內容</span>
+        <pre id="preview" tabindex="0" aria-labelledby="preview-label"></pre>
+      </div>
+    </div>
+
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>三角形</th>
+            <th>Quad 四邊形</th>
+            <th>四面體</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>描述什麼</th>
+            <td>表面</td>
+            <td>表面</td>
+            <td>體積（內部）</td>
+          </tr>
+          <tr>
+            <th>頂點 / 邊 / 面</th>
+            <td>3 / 3 / 1</td>
+            <td>4 / 4 / 1</td>
+            <td>4 / 6 / 4 個三角面</td>
+          </tr>
+          <tr>
+            <th>一定是平的嗎</th>
+            <td>是，三點必共面</td>
+            <td>不一定，四點可能扭曲</td>
+            <td>每個面都是三角形，所以是</td>
+          </tr>
+          <tr>
+            <th>自動生成</th>
+            <td>容易，Delaunay 很成熟</td>
+            <td>困難，好的佈線常靠人工或 retopology</td>
+            <td>容易，給封閉表面就能填滿</td>
+          </tr>
+          <tr>
+            <th>強項</th>
+            <td>最通用，GPU 原生，演算法最單純</td>
+            <td>邊環清楚，細分曲面平滑，變形好看</td>
+            <td>任意形狀都填得滿，模擬用的最小體積單元</td>
+          </tr>
+          <tr>
+            <th>弱點</th>
+            <td>沒有方向性，細分後容易有皺摺</td>
+            <td>不能表示所有拓撲而不出現奇異點</td>
+            <td>同樣精度下，元素數量比六面體多</td>
+          </tr>
+          <tr>
+            <th>互相轉換</th>
+            <td>合併成 quad 很難做得漂亮</td>
+            <td>切一刀就變兩個三角形</td>
+            <td>外表面就是一張三角網格</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="formats">
+    <h2>有哪些檔案格式</h2>
+    <p class="legend">
+      標了 <span class="can"></span> 的格式，上面的檢視器可以直接匯出和載入。
+    </p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>格式</th>
+            <th>編碼</th>
+            <th>能放的元素</th>
+            <th>幾何以外還存什麼</th>
+            <th>常出現在</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="grp">
+            <td colspan="5">表面網格 · 繪圖與交換</td>
+          </tr>
+          <tr>
+            <th>OBJ<span class="can"></span><small>.obj + .mtl</small></th>
+            <td>文字</td>
+            <td>任意多邊形：三角、quad、n 邊形</td>
+            <td>UV、法線、材質群組。沒有動畫</td>
+            <td>建模軟體互通、教學、研究</td>
+          </tr>
+          <tr>
+            <th>STL<span class="can"></span><small>.stl</small></th>
+            <td>文字或二進位</td>
+            <td>只有三角形，而且頂點不共用</td>
+            <td>只有面法線。沒有單位、顏色</td>
+            <td>3D 列印、CAD 匯出</td>
+          </tr>
+          <tr>
+            <th>PLY<span class="can"></span><small>.ply</small></th>
+            <td>文字或二進位</td>
+            <td>多邊形、點雲</td>
+            <td>標頭自訂屬性：顏色、法線、信心值</td>
+            <td>3D 掃描、點雲、研究資料集</td>
+          </tr>
+          <tr>
+            <th>OFF<span class="can"></span><small>.off</small></th>
+            <td>文字</td>
+            <td>多邊形</td>
+            <td>幾乎沒有</td>
+            <td>幾何處理研究（CGAL、libigl）</td>
+          </tr>
+          <tr>
+            <th>glTF 2.0<small>.gltf / .glb</small></th>
+            <td>JSON + 二進位緩衝</td>
+            <td>三角形（另有點、線）</td>
+            <td>PBR 材質、貼圖、骨架、動畫、場景階層</td>
+            <td>Web、遊戲、AR / VR 傳輸</td>
+          </tr>
+          <tr>
+            <th>FBX<small>.fbx</small></th>
+            <td>二進位，Autodesk 專有</td>
+            <td>多邊形</td>
+            <td>材質、骨架、動畫、相機、燈光</td>
+            <td>遊戲引擎與 DCC 之間的管線</td>
+          </tr>
+          <tr>
+            <th>USD<small>.usd / .usda / .usdz</small></th>
+            <td>文字或二進位</td>
+            <td>多邊形、細分曲面</td>
+            <td>場景組合、變體、材質、動畫</td>
+            <td>影視製作、大型場景、Apple AR</td>
+          </tr>
+          <tr>
+            <th>3MF<small>.3mf</small></th>
+            <td>ZIP 包 XML</td>
+            <td>三角形，共用頂點</td>
+            <td>單位、顏色、材質、列印設定</td>
+            <td>3D 列印，用來取代 STL</td>
+          </tr>
+          <tr class="grp">
+            <td colspan="5">體網格 · 模擬與分析</td>
+          </tr>
+          <tr>
+            <th>VTK<span class="can"></span><small>.vtk / .vtu</small></th>
+            <td>文字、二進位或 XML</td>
+            <td>全部：三角、quad、四面體、六面體、稜柱…</td>
+            <td>掛在點或單元上的純量場、向量場</td>
+            <td>ParaView 科學視覺化、模擬結果</td>
+          </tr>
+          <tr>
+            <th>Gmsh MSH<span class="can"></span><small>.msh</small></th>
+            <td>文字或二進位</td>
+            <td>線、三角、quad、四面體、六面體、高階元素</td>
+            <td>物理群組，用來標邊界條件</td>
+            <td>FEM 前處理、開源求解器</td>
+          </tr>
+          <tr>
+            <th>MEDIT<span class="can"></span><small>.mesh / .meshb</small></th>
+            <td>文字或二進位</td>
+            <td>三角、quad、四面體、六面體</td>
+            <td>每個元素一個參考標籤</td>
+            <td>網格生成研究（TetGen、MMG、CGAL）</td>
+          </tr>
+          <tr>
+            <th>TetGen<small>.node / .ele / .face</small></th>
+            <td>文字，拆成多檔</td>
+            <td>四面體 + 邊界三角形</td>
+            <td>屬性、邊界標記</td>
+            <td>TetGen、Triangle 的輸入輸出</td>
+          </tr>
+          <tr>
+            <th>Abaqus / Nastran<small>.inp / .bdf</small></th>
+            <td>文字</td>
+            <td>有限元素全家族</td>
+            <td>材料、載重、邊界條件，整份求解設定</td>
+            <td>商用結構分析</td>
+          </tr>
+          <tr>
+            <th>CGNS / Exodus II<small>.cgns / .exo</small></th>
+            <td>二進位（HDF5 / NetCDF）</td>
+            <td>結構化與非結構化體網格</td>
+            <td>流場解、時間步、分區</td>
+            <td>CFD、大規模平行模擬</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="size">
+    <h2>檔案大小與編碼方式</h2>
+    <p>
+      同一顆球（檢視器的三角網格 L5：2,562 個頂點、5,120
+      個三角形），只存位置，座標寫到小數 6 位，各格式存出來的大小如下。
+    </p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>格式</th>
+            <th>編碼</th>
+            <th>檔案大小</th>
+            <th>每個三角形</th>
+            <th>大小從哪來</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>STL</th>
+            <td>文字</td>
+            <td class="mono">902 KB</td>
+            <td class="mono">180 B</td>
+            <td>
+              每個三角形寫三個完整座標、一個法線和一堆關鍵字，頂點平均重複 6 次
+            </td>
+          </tr>
+          <tr>
+            <th>STL</th>
+            <td>二進位</td>
+            <td class="mono">250 KB</td>
+            <td class="mono">50 B</td>
+            <td>固定 50 bytes：法線 12 + 三個頂點 36 + 屬性 2</td>
+          </tr>
+          <tr>
+            <th>Gmsh MSH 2.2</th>
+            <td>文字</td>
+            <td class="mono">213 KB</td>
+            <td class="mono">43 B</td>
+            <td>每列多了節點編號、元素編號、類型和兩個標籤</td>
+          </tr>
+          <tr>
+            <th>VTK legacy</th>
+            <td>文字</td>
+            <td class="mono">158 KB</td>
+            <td class="mono">32 B</td>
+            <td>索引之外，每個單元再多一列類型碼</td>
+          </tr>
+          <tr>
+            <th>OBJ</th>
+            <td>文字</td>
+            <td class="mono">152 KB</td>
+            <td class="mono">30 B</td>
+            <td>頂點寫一次，面只寫索引</td>
+          </tr>
+          <tr>
+            <th>MEDIT</th>
+            <td>文字</td>
+            <td class="mono">152 KB</td>
+            <td class="mono">30 B</td>
+            <td>同上，每列多一個參考標籤</td>
+          </tr>
+          <tr>
+            <th>PLY</th>
+            <td>文字</td>
+            <td class="mono">148 KB</td>
+            <td class="mono">30 B</td>
+            <td>同上，前面多一段標頭</td>
+          </tr>
+          <tr>
+            <th>OFF</th>
+            <td>文字</td>
+            <td class="mono">147 KB</td>
+            <td class="mono">29 B</td>
+            <td>沒有關鍵字，只有數字，文字格式裡最小</td>
+          </tr>
+          <tr>
+            <th>PLY</th>
+            <td>二進位</td>
+            <td class="mono">≈ 95 KB</td>
+            <td class="mono">19 B</td>
+            <td>每頂點 3 個 float32 共 12 B，每個面 1 + 3×4 = 13 B</td>
+          </tr>
+          <tr>
+            <th>glTF（.glb）</th>
+            <td>二進位</td>
+            <td class="mono">≈ 61 KB</td>
+            <td class="mono">12 B</td>
+            <td>每頂點 12 B，索引用 uint16 每個面只要 6 B</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="legend">
+      文字格式的數字是用這一頁的匯出程式實際量的。二進位 PLY 和 GLB
+      是依規格算的。把 OBJ 用 gzip 壓過會剩大約 36 KB，文字檔的數字很好壓。
+    </p>
+    <dl class="terms">
+      <div>
+        <dt>文字（ASCII）</dt>
+        <dd>
+          數字寫成字元，一個 float 要 8 到 10 bytes。能用記事本打開、能
+          diff、好除錯。精度看你寫幾位小數。
+        </dd>
+      </div>
+      <div>
+        <dt>二進位</dt>
+        <dd>
+          數字直接存成 float32（4 bytes）或 float64（8 bytes），通常是
+          little-endian。小、讀得快、不損失精度，但要用程式才看得懂。
+        </dd>
+      </div>
+      <div>
+        <dt>容器</dt>
+        <dd>
+          glTF 是 JSON 描述加二進位緩衝；3MF 是 ZIP 裡包 XML；USDZ 是不壓縮的
+          ZIP；CGNS、Exodus 建在 HDF5、NetCDF 上，可以只讀一部分。
+        </dd>
+      </div>
+      <div>
+        <dt>壓縮</dt>
+        <dd>
+          glTF 可以加 Draco 或 meshopt，把座標量化成較少位元，再小好幾倍。VTK 的
+          XML 版（.vtu）可以用 zlib 壓資料區塊。
+        </dd>
+      </div>
+      <div>
+        <dt>索引寬度</dt>
+        <dd>
+          頂點少於 65,536 個時 glTF 用 uint16 索引，超過就要
+          uint32，索引部分大一倍。文字格式沒有這個上限。
+        </dd>
+      </div>
+      <div>
+        <dt>體網格更大</dt>
+        <dd>
+          四面體網格的元素數隨體積成長。同樣解析度下，一個 100³ 的方塊表面約 12
+          萬個三角形，內部卻有 600 萬個四面體。
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section id="diff">
+    <h2>這些格式差在哪裡</h2>
+    <ol class="axes">
+      <li>
+        <b>存外殼還是存內部。</b>OBJ、STL、glTF
+        只有表面。把四面體網格存成它們，內部就消失了，檢視器裡選四面體再按 OBJ
+        可以看到警告。
+      </li>
+      <li>
+        <b>允許哪些元素。</b>STL、glTF、3MF 只收三角形，quad
+        會被切開。OBJ、PLY、OFF 保留原本的多邊形。
+      </li>
+      <li>
+        <b>有沒有共用頂點。</b>STL
+        每個三角形各寫三個座標，鄰接關係要讀檔後靠比對座標重建。其他格式用索引。
+      </li>
+      <li>
+        <b>幾何之外帶什麼。</b>繪圖格式帶
+        UV、材質、骨架、動畫。模擬格式帶邊界標籤、材料、物理場。兩邊幾乎不重疊。
+      </li>
+      <li>
+        <b>文字還是二進位。</b
+        >文字檔能直接打開看、好除錯，但檔案大、讀得慢。大資料幾乎都用二進位。
+      </li>
+      <li>
+        <b>開放還是專有。</b>glTF、USD、PLY、VTK 規格公開。FBX
+        沒有公開規格，要靠 Autodesk 的 SDK。
+      </li>
+    </ol>
+  </section>
+
+  <section id="uses">
+    <h2>在哪裡用到</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>領域</th>
+            <th>用的網格</th>
+            <th>原因</th>
+            <th>常見格式</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>遊戲、即時渲染</th>
+            <td>三角形</td>
+            <td>GPU 只會畫三角形，其他形狀送進去前都要先切</td>
+            <td>glTF、FBX</td>
+          </tr>
+          <tr>
+            <th>角色與影視建模</th>
+            <td>Quad</td>
+            <td>邊環順著肌肉和關節走，細分後平滑，綁骨架變形好看</td>
+            <td>OBJ、FBX、USD、Alembic</td>
+          </tr>
+          <tr>
+            <th>3D 列印</th>
+            <td>封閉的三角網格</td>
+            <td>切片軟體只需要知道哪裡是裡面、哪裡是外面</td>
+            <td>STL、3MF</td>
+          </tr>
+          <tr>
+            <th>3D 掃描、攝影測量</th>
+            <td>點雲 → 三角形</td>
+            <td>感測器給的是點，再重建成表面，每點常帶顏色</td>
+            <td>PLY、OBJ</td>
+          </tr>
+          <tr>
+            <th>結構、熱傳分析（FEM）</th>
+            <td>四面體，或六面體</td>
+            <td>四面體能自動填滿任意零件；六面體精度好但難自動生成</td>
+            <td>MSH、INP、BDF、VTK</td>
+          </tr>
+          <tr>
+            <th>流體模擬（CFD）</th>
+            <td>四面體 + 壁面稜柱層、六面體、多面體</td>
+            <td>靠近壁面要很薄的元素才抓得到邊界層</td>
+            <td>CGNS、Exodus、VTK</td>
+          </tr>
+          <tr>
+            <th>軟體、手術、布料模擬</th>
+            <td>四面體、三角形</td>
+            <td>會變形的實體需要體積元素來算應變</td>
+            <td>MSH、MEDIT、VTK</td>
+          </tr>
+          <tr>
+            <th>幾何處理研究</th>
+            <td>三角形</td>
+            <td>簡化、參數化、平滑等演算法在三角形上最單純</td>
+            <td>OFF、OBJ、PLY</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    檢視器用原生 WebGL 寫成，沒有用任何 3D
+    函式庫。網格的產生、七種格式的匯出與解析都在這一頁裡。
+  </footer>
+</div>
+
+<script id="logic">
+  /* ---------- vector helpers ---------- */
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const cross = (a, b) => [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const unit = (a) => {
+    const l = Math.hypot(a[0], a[1], a[2]) || 1;
+    return [a[0] / l, a[1] / l, a[2] / l];
+  };
+  const TET_FACES = [
+    [0, 2, 1],
+    [0, 1, 3],
+    [0, 3, 2],
+    [1, 2, 3],
+  ]; // outward when the tet has positive volume
+  const TET_EDGES = [
+    [0, 1],
+    [0, 2],
+    [0, 3],
+    [1, 2],
+    [1, 3],
+    [2, 3],
+  ];
+
+  /* ---------- generators ---------- */
+  function icosphere(level) {
+    const t = (1 + Math.sqrt(5)) / 2;
+    const V = [
+      [-1, t, 0],
+      [1, t, 0],
+      [-1, -t, 0],
+      [1, -t, 0],
+      [0, -1, t],
+      [0, 1, t],
+      [0, -1, -t],
+      [0, 1, -t],
+      [t, 0, -1],
+      [t, 0, 1],
+      [-t, 0, -1],
+      [-t, 0, 1],
+    ].map(unit);
+    let F = [
+      [0, 11, 5],
+      [0, 5, 1],
+      [0, 1, 7],
+      [0, 7, 10],
+      [0, 10, 11],
+      [1, 5, 9],
+      [5, 11, 4],
+      [11, 10, 2],
+      [10, 7, 6],
+      [7, 1, 8],
+      [3, 9, 4],
+      [3, 4, 2],
+      [3, 2, 6],
+      [3, 6, 8],
+      [3, 8, 9],
+      [4, 9, 5],
+      [2, 4, 11],
+      [6, 2, 10],
+      [8, 6, 7],
+      [9, 8, 1],
+    ];
+    for (let l = 0; l < level; l++) {
+      const cache = new Map();
+      const mid = (a, b) => {
+        const k = a < b ? a + '_' + b : b + '_' + a;
+        let i = cache.get(k);
+        if (i === undefined) {
+          i = V.length;
+          V.push(
+            unit([V[a][0] + V[b][0], V[a][1] + V[b][1], V[a][2] + V[b][2]]),
+          );
+          cache.set(k, i);
+        }
+        return i;
+      };
+      const next = [];
+      for (const [a, b, c] of F) {
+        const ab = mid(a, b),
+          bc = mid(b, c),
+          ca = mid(c, a);
+        next.push([a, ab, ca], [b, bc, ab], [c, ca, bc], [ab, bc, ca]);
+      }
+      F = next;
+    }
+    return { verts: V, faces: F, tets: [] };
+  }
+
+  function quadTorus(nu, nv) {
+    const R = 0.68,
+      r = 0.32,
+      V = [],
+      F = [];
+    for (let i = 0; i < nu; i++)
+      for (let j = 0; j < nv; j++) {
+        const u = (2 * Math.PI * i) / nu,
+          v = (2 * Math.PI * j) / nv,
+          d = R + r * Math.cos(v);
+        V.push([d * Math.cos(u), r * Math.sin(v), d * Math.sin(u)]);
+      }
+    for (let i = 0; i < nu; i++)
+      for (let j = 0; j < nv; j++) {
+        const i2 = (i + 1) % nu,
+          j2 = (j + 1) % nv;
+        F.push([i * nv + j, i * nv + j2, i2 * nv + j2, i2 * nv + j]);
+      }
+    return { verts: V, faces: F, tets: [] };
+  }
+
+  function orientTets(verts, tets) {
+    for (const t of tets) {
+      const [a, b, c, d] = t.map((i) => verts[i]);
+      if (dot(cross(sub(b, a), sub(c, a)), sub(d, a)) < 0) {
+        const s = t[0];
+        t[0] = t[1];
+        t[1] = s;
+      }
+    }
+    return tets;
+  }
+
+  // n×n×n cubes, each cut into 6 tetrahedra (Kuhn subdivision), then the cube is rounded into a ball
+  function tetBall(n) {
+    const V = [],
+      T = [],
+      id = (i, j, k) => (i * (n + 1) + j) * (n + 1) + k;
+    for (let i = 0; i <= n; i++)
+      for (let j = 0; j <= n; j++)
+        for (let k = 0; k <= n; k++) {
+          const p = [-1 + (2 * i) / n, -1 + (2 * j) / n, -1 + (2 * k) / n];
+          const m = Math.max(Math.abs(p[0]), Math.abs(p[1]), Math.abs(p[2])),
+            l = Math.hypot(p[0], p[1], p[2]);
+          const s = l ? m / l : 0;
+          V.push([p[0] * s, p[1] * s, p[2] * s]);
+        }
+    const perms = [
+      [0, 1, 2],
+      [0, 2, 1],
+      [1, 0, 2],
+      [1, 2, 0],
+      [2, 0, 1],
+      [2, 1, 0],
+    ];
+    for (let i = 0; i < n; i++)
+      for (let j = 0; j < n; j++)
+        for (let k = 0; k < n; k++)
+          for (const perm of perms) {
+            const c = [i, j, k],
+              tet = [id(i, j, k)];
+            for (const ax of perm) {
+              c[ax]++;
+              tet.push(id(c[0], c[1], c[2]));
+            }
+            T.push(tet);
+          }
+    return { verts: V, faces: [], tets: orientTets(V, T) };
+  }
+
+  /* ---------- topology ---------- */
+  function boundaryFaces(tets) {
+    const seen = new Map();
+    for (const t of tets)
+      for (const f of TET_FACES) {
+        const tri = [t[f[0]], t[f[1]], t[f[2]]];
+        const key = tri
+          .slice()
+          .sort((a, b) => a - b)
+          .join('_');
+        if (seen.has(key)) seen.set(key, null);
+        else seen.set(key, tri);
+      }
+    const out = [];
+    for (const tri of seen.values()) if (tri) out.push(tri);
+    return { faces: out, total: seen.size };
+  }
+
+  function meshStats(mesh) {
+    const N = mesh.verts.length,
+      edges = new Set();
+    const add = (a, b) => edges.add(a < b ? a * N + b : b * N + a);
+    if (mesh.tets.length) {
+      for (const t of mesh.tets)
+        for (const [a, b] of TET_EDGES) add(t[a], t[b]);
+      const F = boundaryFaces(mesh.tets).total,
+        T = mesh.tets.length;
+      return { V: N, E: edges.size, F, T, chi: N - edges.size + F - T };
+    }
+    for (const f of mesh.faces)
+      for (let i = 0; i < f.length; i++) add(f[i], f[(i + 1) % f.length]);
+    return {
+      V: N,
+      E: edges.size,
+      F: mesh.faces.length,
+      T: 0,
+      chi: N - edges.size + mesh.faces.length,
+    };
+  }
+
+  // drop vertices no face refers to, so surface exports of a volume mesh stay clean
+  function surfaceOf(mesh) {
+    if (!mesh.tets.length) return { verts: mesh.verts, faces: mesh.faces };
+    const faces = boundaryFaces(mesh.tets).faces,
+      map = new Map(),
+      verts = [];
+    const out = faces.map((f) =>
+      f.map((i) => {
+        let j = map.get(i);
+        if (j === undefined) {
+          j = verts.length;
+          verts.push(mesh.verts[i]);
+          map.set(i, j);
+        }
+        return j;
+      }),
+    );
+    return { verts, faces: out };
+  }
+  const fan = (f) => {
+    const o = [];
+    for (let i = 1; i < f.length - 1; i++) o.push([f[0], f[i], f[i + 1]]);
+    return o;
+  };
+
+  /* ---------- geometry for the GPU ---------- */
+  function buildGeometry(mesh, opt) {
+    const V = mesh.verts,
+      mn = [Infinity, Infinity, Infinity],
+      mx = [-Infinity, -Infinity, -Infinity];
+    for (const v of V)
+      for (let k = 0; k < 3; k++) {
+        if (v[k] < mn[k]) mn[k] = v[k];
+        if (v[k] > mx[k]) mx[k] = v[k];
+      }
+    const c = [(mn[0] + mx[0]) / 2, (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2];
+    let r = 0;
+    for (const v of V)
+      r = Math.max(r, Math.hypot(v[0] - c[0], v[1] - c[1], v[2] - c[2]));
+    r = r || 1;
+    const P = V.map((v) => [
+      (v[0] - c[0]) / r,
+      (v[1] - c[1]) / r,
+      (v[2] - c[2]) / r,
+    ]);
+    const tri = [],
+      nrm = [],
+      line = [];
+    const pushTri = (a, b, d, n) => {
+      tri.push(a[0], a[1], a[2], b[0], b[1], b[2], d[0], d[1], d[2]);
+      nrm.push(n[0], n[1], n[2], n[0], n[1], n[2], n[0], n[1], n[2]);
+    };
+    const pushLine = (a, b) => line.push(a[0], a[1], a[2], b[0], b[1], b[2]);
+    let shown = 0;
+    if (mesh.tets.length) {
+      const s = opt.shrink,
+        cut = opt.clip;
+      for (const t of mesh.tets) {
+        const p = [P[t[0]], P[t[1]], P[t[2]], P[t[3]]];
+        const g = [0, 1, 2].map(
+          (k) => (p[0][k] + p[1][k] + p[2][k] + p[3][k]) / 4,
+        );
+        if (g[0] > cut) continue;
+        shown++;
+        const q = p.map((v) => [
+          g[0] + (v[0] - g[0]) * s,
+          g[1] + (v[1] - g[1]) * s,
+          g[2] + (v[2] - g[2]) * s,
+        ]);
+        for (const [a, b, d] of TET_FACES)
+          pushTri(
+            q[a],
+            q[b],
+            q[d],
+            unit(cross(sub(q[b], q[a]), sub(q[d], q[a]))),
+          );
+        for (const [a, b] of TET_EDGES) pushLine(q[a], q[b]);
+      }
+    } else {
+      for (const f of mesh.faces) {
+        const p = f.map((i) => P[i]),
+          n = [0, 0, 0];
+        for (let i = 0; i < p.length; i++) {
+          // Newell normal: stable for non-planar quads
+          const a = p[i],
+            b = p[(i + 1) % p.length];
+          n[0] += (a[1] - b[1]) * (a[2] + b[2]);
+          n[1] += (a[2] - b[2]) * (a[0] + b[0]);
+          n[2] += (a[0] - b[0]) * (a[1] + b[1]);
+        }
+        const nn = unit(n);
+        for (let i = 1; i < p.length - 1; i++)
+          pushTri(p[0], p[i], p[i + 1], nn);
+        for (let i = 0; i < p.length; i++)
+          pushLine(p[i], p[(i + 1) % p.length]);
+        shown++;
+      }
+    }
+    return {
+      tri: new Float32Array(tri),
+      nrm: new Float32Array(nrm),
+      line: new Float32Array(line),
+      shown,
+    };
+  }
+
+  /* ---------- writers ---------- */
+  const num = (x) => String(+x.toFixed(6));
+  const xyz = (v) => num(v[0]) + ' ' + num(v[1]) + ' ' + num(v[2]);
+
+  const WRITERS = {
+    obj(mesh) {
+      const s = surfaceOf(mesh),
+        L = [
+          '# Wavefront OBJ',
+          '# ' + s.verts.length + ' vertices, ' + s.faces.length + ' faces',
+        ];
+      for (const v of s.verts) L.push('v ' + xyz(v));
+      for (const f of s.faces) L.push('f ' + f.map((i) => i + 1).join(' '));
+      return L.join('\n') + '\n';
+    },
+    stl(mesh) {
+      const s = surfaceOf(mesh),
+        L = ['solid mesh'];
+      for (const f of s.faces)
+        for (const t of fan(f)) {
+          const [a, b, c] = t.map((i) => s.verts[i]);
+          L.push(
+            'facet normal ' + xyz(unit(cross(sub(b, a), sub(c, a)))),
+            ' outer loop',
+            '  vertex ' + xyz(a),
+            '  vertex ' + xyz(b),
+            '  vertex ' + xyz(c),
+            ' endloop',
+            'endfacet',
+          );
+        }
+      L.push('endsolid mesh');
+      return L.join('\n') + '\n';
+    },
+    ply(mesh) {
+      const s = surfaceOf(mesh);
+      const L = [
+        'ply',
+        'format ascii 1.0',
+        'element vertex ' + s.verts.length,
+        'property float x',
+        'property float y',
+        'property float z',
+        'element face ' + s.faces.length,
+        'property list uchar int vertex_indices',
+        'end_header',
+      ];
+      for (const v of s.verts) L.push(xyz(v));
+      for (const f of s.faces) L.push(f.length + ' ' + f.join(' '));
+      return L.join('\n') + '\n';
+    },
+    off(mesh) {
+      const s = surfaceOf(mesh),
+        L = ['OFF', s.verts.length + ' ' + s.faces.length + ' 0'];
+      for (const v of s.verts) L.push(xyz(v));
+      for (const f of s.faces) L.push(f.length + ' ' + f.join(' '));
+      return L.join('\n') + '\n';
+    },
+    vtk(mesh) {
+      const cells = mesh.tets.length ? mesh.tets : mesh.faces,
+        isTet = mesh.tets.length > 0;
+      const L = [
+        '# vtk DataFile Version 3.0',
+        'mesh',
+        'ASCII',
+        'DATASET UNSTRUCTURED_GRID',
+        'POINTS ' + mesh.verts.length + ' float',
+      ];
+      for (const v of mesh.verts) L.push(xyz(v));
+      L.push(
+        'CELLS ' +
+          cells.length +
+          ' ' +
+          cells.reduce((n, c) => n + c.length + 1, 0),
+      );
+      for (const c of cells) L.push(c.length + ' ' + c.join(' '));
+      L.push('CELL_TYPES ' + cells.length);
+      for (const c of cells)
+        L.push(
+          isTet ? '10' : c.length === 3 ? '5' : c.length === 4 ? '9' : '7',
+        );
+      return L.join('\n') + '\n';
+    },
+    msh(mesh) {
+      const isTet = mesh.tets.length > 0;
+      const cells = isTet
+        ? mesh.tets
+        : mesh.faces.flatMap((f) => (f.length <= 4 ? [f] : fan(f)));
+      const L = [
+        '$MeshFormat',
+        '2.2 0 8',
+        '$EndMeshFormat',
+        '$Nodes',
+        String(mesh.verts.length),
+      ];
+      mesh.verts.forEach((v, i) => L.push(i + 1 + ' ' + xyz(v)));
+      L.push('$EndNodes', '$Elements', String(cells.length));
+      cells.forEach((c, i) =>
+        L.push(
+          i +
+            1 +
+            ' ' +
+            (isTet ? 4 : c.length === 3 ? 2 : 3) +
+            ' 2 1 1 ' +
+            c.map((j) => j + 1).join(' '),
+        ),
+      );
+      L.push('$EndElements');
+      return L.join('\n') + '\n';
+    },
+    mesh(mesh) {
+      const L = [
+        'MeshVersionFormatted 1',
+        'Dimension 3',
+        'Vertices',
+        String(mesh.verts.length),
+      ];
+      for (const v of mesh.verts) L.push(xyz(v) + ' 0');
+      const block = (name, cells) => {
+        if (cells.length) {
+          L.push(name, String(cells.length));
+          for (const c of cells) L.push(c.map((j) => j + 1).join(' ') + ' 1');
+        }
+      };
+      if (mesh.tets.length) block('Tetrahedra', mesh.tets);
+      else {
+        block(
+          'Triangles',
+          mesh.faces.flatMap((f) => (f.length === 4 ? [] : fan(f))),
+        );
+        block(
+          'Quadrilaterals',
+          mesh.faces.filter((f) => f.length === 4),
+        );
+      }
+      L.push('End');
+      return L.join('\n') + '\n';
+    },
+  };
+
+  /* ---------- readers ---------- */
+  const PLY_SIZE = {
+    char: 1,
+    uchar: 1,
+    int8: 1,
+    uint8: 1,
+    short: 2,
+    ushort: 2,
+    int16: 2,
+    uint16: 2,
+    int: 4,
+    uint: 4,
+    int32: 4,
+    uint32: 4,
+    float: 4,
+    float32: 4,
+    double: 8,
+    float64: 8,
+  };
+  const lines = (t) =>
+    t
+      .split(/\r?\n/)
+      .map((l) => l.replace(/#.*/, '').trim())
+      .filter(Boolean);
+
+  const READERS = {
+    obj(text) {
+      const verts = [],
+        faces = [];
+      for (const l of text.split(/\r?\n/)) {
+        const p = l.trim().split(/\s+/);
+        if (p[0] === 'v') verts.push([+p[1], +p[2], +p[3]]);
+        else if (p[0] === 'f') {
+          const f = p.slice(1).map((s) => {
+            const i = parseInt(s, 10);
+            return i < 0 ? verts.length + i : i - 1;
+          });
+          if (f.length >= 3) faces.push(f);
+        }
+      }
+      return { verts, faces, tets: [] };
+    },
+    off(text) {
+      const L = lines(text);
+      let head = L.shift()
+        .replace(/^[A-Za-z0-9]*OFF/, '')
+        .trim();
+      if (!head) head = L.shift();
+      const [nv, nf] = head.split(/\s+/).map(Number);
+      const verts = L.slice(0, nv).map((l) =>
+        l.split(/\s+/).slice(0, 3).map(Number),
+      );
+      const faces = L.slice(nv, nv + nf).map((l) => {
+        const p = l.split(/\s+/).map(Number);
+        return p.slice(1, 1 + p[0]);
+      });
+      return { verts, faces, tets: [] };
+    },
+    stl(text, buf) {
+      const dv = new DataView(buf),
+        verts = [],
+        faces = [],
+        index = new Map();
+      const vid = (x, y, z) => {
+        const k = x + ',' + y + ',' + z;
+        let i = index.get(k);
+        if (i === undefined) {
+          i = verts.length;
+          verts.push([x, y, z]);
+          index.set(k, i);
+        }
+        return i;
+      };
+      if (
+        buf.byteLength >= 84 &&
+        84 + 50 * dv.getUint32(80, true) === buf.byteLength
+      ) {
+        const n = dv.getUint32(80, true);
+        for (let t = 0; t < n; t++) {
+          const o = 84 + 50 * t + 12,
+            f = [];
+          for (let k = 0; k < 3; k++)
+            f.push(
+              vid(
+                dv.getFloat32(o + 12 * k, true),
+                dv.getFloat32(o + 12 * k + 4, true),
+                dv.getFloat32(o + 12 * k + 8, true),
+              ),
+            );
+          faces.push(f);
+        }
+      } else {
+        const re = /vertex\s+(\S+)\s+(\S+)\s+(\S+)/g;
+        let m,
+          f = [];
+        while ((m = re.exec(text))) {
+          f.push(vid(+m[1], +m[2], +m[3]));
+          if (f.length === 3) {
+            faces.push(f);
+            f = [];
+          }
+        }
+      }
+      return { verts, faces, tets: [] };
+    },
+    ply(text, buf) {
+      const u8 = new Uint8Array(buf),
+        mark = 'end_header';
+      let end = -1;
+      for (let i = 0; i < Math.min(u8.length, 65536) && end < 0; i++) {
+        let k = 0;
+        while (k < mark.length && u8[i + k] === mark.charCodeAt(k)) k++;
+        if (k === mark.length) end = i + k;
+      }
+      if (end < 0) throw new Error('PLY 標頭沒有 end_header');
+      while (u8[end] !== 10) end++;
+      end++;
+      const head = new TextDecoder().decode(u8.subarray(0, end)).split(/\r?\n/),
+        elements = [];
+      let format = 'ascii';
+      for (const l of head) {
+        const p = l.trim().split(/\s+/);
+        if (p[0] === 'format') format = p[1];
+        else if (p[0] === 'element')
+          elements.push({ name: p[1], count: +p[2], props: [] });
+        else if (p[0] === 'property')
+          elements[elements.length - 1].props.push(
+            p[1] === 'list'
+              ? { list: true, ct: p[2], it: p[3], name: p[4] }
+              : { type: p[1], name: p[2] },
+          );
+      }
+      let next;
+      if (format === 'ascii') {
+        const tok = new TextDecoder()
+          .decode(u8.subarray(end))
+          .split(/\s+/)
+          .filter(Boolean);
+        let i = 0;
+        next = () => +tok[i++];
+      } else {
+        const dv = new DataView(buf),
+          le = format === 'binary_little_endian';
+        let o = end;
+        next = (type) => {
+          const n = PLY_SIZE[type],
+            at = o;
+          if (!n) throw new Error('PLY 屬性型別不支援：' + type);
+          o += n;
+          switch (type) {
+            case 'char':
+            case 'int8':
+              return dv.getInt8(at);
+            case 'uchar':
+            case 'uint8':
+              return dv.getUint8(at);
+            case 'short':
+            case 'int16':
+              return dv.getInt16(at, le);
+            case 'ushort':
+            case 'uint16':
+              return dv.getUint16(at, le);
+            case 'int':
+            case 'int32':
+              return dv.getInt32(at, le);
+            case 'uint':
+            case 'uint32':
+              return dv.getUint32(at, le);
+            case 'float':
+            case 'float32':
+              return dv.getFloat32(at, le);
+            default:
+              return dv.getFloat64(at, le);
+          }
+        };
+      }
+      const verts = [],
+        faces = [];
+      for (const el of elements)
+        for (let n = 0; n < el.count; n++) {
+          const rec = {};
+          for (const p of el.props) {
+            if (p.list) {
+              const c = next(p.ct),
+                a = [];
+              for (let k = 0; k < c; k++) a.push(next(p.it));
+              rec[p.name] = a;
+            } else rec[p.name] = next(p.type);
+          }
+          if (el.name === 'vertex') verts.push([rec.x, rec.y, rec.z]);
+          else if (el.name === 'face') {
+            const f = rec.vertex_indices || rec.vertex_index;
+            if (f && f.length >= 3) faces.push(f);
+          }
+        }
+      return { verts, faces, tets: [] };
+    },
+    vtk(text) {
+      const tok = text.split(/\s+/).filter(Boolean);
+      if (tok.slice(0, 40).includes('BINARY'))
+        throw new Error('只支援 ASCII 的 legacy VTK');
+      let i = tok.indexOf('POINTS');
+      if (i < 0) throw new Error('VTK 檔裡沒有 POINTS');
+      const nv = +tok[i + 1],
+        verts = [];
+      for (let k = 0; k < nv; k++)
+        verts.push([
+          +tok[i + 3 + 3 * k],
+          +tok[i + 4 + 3 * k],
+          +tok[i + 5 + 3 * k],
+        ]);
+      i = tok.indexOf('CELLS');
+      if (i < 0)
+        throw new Error('VTK 檔裡沒有 CELLS（只支援 UNSTRUCTURED_GRID）');
+      const cells = [];
+      if (tok[i + 3] === 'OFFSETS') {
+        // VTK 5.x layout
+        const no = +tok[i + 1],
+          off = [];
+        for (let k = 0; k < no; k++) off.push(+tok[i + 5 + k]);
+        const c0 = tok.indexOf('CONNECTIVITY', i) + 2;
+        for (let k = 0; k + 1 < no; k++)
+          cells.push(tok.slice(c0 + off[k], c0 + off[k + 1]).map(Number));
+      } else {
+        const nc = +tok[i + 1];
+        let p = i + 3;
+        for (let k = 0; k < nc; k++) {
+          const n = +tok[p];
+          cells.push(tok.slice(p + 1, p + 1 + n).map(Number));
+          p += n + 1;
+        }
+      }
+      i = tok.indexOf('CELL_TYPES');
+      const faces = [],
+        tets = [];
+      cells.forEach((c, k) => {
+        const t = i < 0 ? 0 : +tok[i + 2 + k];
+        if (t === 10) tets.push(c);
+        else if (t === 5 || t === 9 || t === 7) faces.push(c);
+      });
+      return { verts, faces, tets };
+    },
+    msh(text) {
+      const L = text.split(/\r?\n/).map((l) => l.trim());
+      let i = L.indexOf('$MeshFormat');
+      if (i >= 0 && parseFloat(L[i + 1]) >= 3)
+        throw new Error(
+          '只支援 Gmsh MSH 2.2 文字格式，請在 Gmsh 匯出時選 Version 2 ASCII',
+        );
+      const ids = new Map(),
+        verts = [],
+        faces = [],
+        tets = [];
+      i = L.indexOf('$Nodes');
+      if (i < 0) throw new Error('MSH 檔裡沒有 $Nodes');
+      for (let k = 0, n = +L[i + 1]; k < n; k++) {
+        const p = L[i + 2 + k].split(/\s+/);
+        ids.set(p[0], verts.length);
+        verts.push([+p[1], +p[2], +p[3]]);
+      }
+      i = L.indexOf('$Elements');
+      for (let k = 0, n = i < 0 ? 0 : +L[i + 1]; k < n; k++) {
+        const p = L[i + 2 + k].split(/\s+/),
+          type = +p[1],
+          nodes = p.slice(3 + +p[2]).map((s) => ids.get(s));
+        if (type === 2 || type === 3) faces.push(nodes);
+        else if (type === 4) tets.push(nodes);
+      }
+      return { verts, faces, tets };
+    },
+    mesh(text) {
+      const tok = lines(text).join(' ').split(/\s+/);
+      let dim = 3;
+      const verts = [],
+        faces = [],
+        tets = [];
+      for (let i = 0; i < tok.length; i++) {
+        const kw = tok[i].toLowerCase();
+        const read = (per, sink) => {
+          const n = +tok[i + 1];
+          for (let k = 0; k < n; k++)
+            sink(tok.slice(i + 2 + k * per, i + 2 + (k + 1) * per).map(Number));
+          i += 1 + n * per;
+        };
+        if (kw === 'dimension') dim = +tok[++i];
+        else if (kw === 'vertices')
+          read(dim + 1, (r) => verts.push([r[0], r[1], dim === 3 ? r[2] : 0]));
+        else if (kw === 'triangles')
+          read(4, (r) => faces.push([r[0] - 1, r[1] - 1, r[2] - 1]));
+        else if (kw === 'quadrilaterals')
+          read(5, (r) => faces.push([r[0] - 1, r[1] - 1, r[2] - 1, r[3] - 1]));
+        else if (kw === 'tetrahedra')
+          read(5, (r) => tets.push([r[0] - 1, r[1] - 1, r[2] - 1, r[3] - 1]));
+      }
+      return { verts, faces, tets };
+    },
+  };
+
+  function parseMesh(name, buf) {
+    const ext = name.split('.').pop().toLowerCase(),
+      reader = READERS[ext];
+    if (!reader)
+      throw new Error(
+        '不認得 .' + ext + '，可以載入 obj、stl、ply、off、vtk、msh、mesh',
+      );
+    const m = reader(new TextDecoder().decode(buf), buf),
+      nv = m.verts.length;
+    const ok = (c) => c.every((i) => Number.isInteger(i) && i >= 0 && i < nv);
+    if (m.verts.some((v) => !v.every(Number.isFinite)))
+      throw new Error('檔案裡的頂點座標讀不出來');
+    m.tets = orientTets(
+      m.verts,
+      m.tets.filter((t) => t.length === 4 && ok(t)),
+    );
+    m.faces = m.tets.length
+      ? []
+      : m.faces.filter((f) => f.length >= 3 && ok(f));
+    if (!nv || (!m.faces.length && !m.tets.length))
+      throw new Error('這個檔案裡找不到面或四面體');
+    return m;
+  }
+</script>
+
+<script>
+  (function () {
+    const $ = (id) => document.getElementById(id);
+    const canvas = $('gl'),
+      stage = $('stage'),
+      statusEl = $('status');
+    const FORMATS = [
+      ['obj', 'OBJ'],
+      ['stl', 'STL'],
+      ['ply', 'PLY'],
+      ['off', 'OFF'],
+      ['vtk', 'VTK'],
+      ['msh', 'MSH'],
+      ['mesh', 'MEDIT'],
+    ];
+    const ABOUT = {
+      tri: '三個頂點一定共面，任何表面都能切成三角形，GPU 最後畫的也都是它。這顆是 icosphere：正二十面體每細分一次，一個三角形變四個。',
+      quad: '四個頂點，一圈一圈排成邊環。細分曲面後依然平滑，彎曲時皺摺好控制，所以建模師偏好它。這個甜甜圈是 u × v 的規則格子。',
+      tet: '四個頂點、四個三角面，連物體內部也填滿。拉「剖面」把它切開，拉「收縮」讓每個四面體縮向自己的中心，就看得到裡面不是空的。',
+    };
+    const START = mul(rotX(0.42), rotY(-0.62));
+    const S = {
+      kind: 'tri',
+      level: { tri: 3, quad: 3, tet: 3 },
+      mode: 'both',
+      fmt: 'obj',
+      zoom: 1,
+      R: START.slice(),
+      auto: !matchMedia('(prefers-reduced-motion: reduce)').matches,
+      custom: null,
+      customName: '',
+      mesh: null,
+      text: '',
+    };
+
+    /* ---- 3×3 rotation, row-major ---- */
+    function rotY(a) {
+      const c = Math.cos(a),
+        s = Math.sin(a);
+      return [c, 0, s, 0, 1, 0, -s, 0, c];
+    }
+    function rotX(a) {
+      const c = Math.cos(a),
+        s = Math.sin(a);
+      return [1, 0, 0, 0, c, -s, 0, s, c];
+    }
+    function mul(a, b) {
+      const o = new Array(9);
+      for (let r = 0; r < 3; r++)
+        for (let c = 0; c < 3; c++)
+          o[r * 3 + c] =
+            a[r * 3] * b[c] + a[r * 3 + 1] * b[3 + c] + a[r * 3 + 2] * b[6 + c];
+      return o;
+    }
+    function rotate(ax, ay) {
+      const m = mul(mul(rotY(ay), rotX(ax)), S.R);
+      const r0 = unit(m.slice(0, 3)),
+        t = m.slice(3, 6),
+        d = dot(r0, t);
+      const r1 = unit([t[0] - d * r0[0], t[1] - d * r0[1], t[2] - d * r0[2]]),
+        r2 = cross(r0, r1);
+      S.R = [...r0, ...r1, ...r2];
+      dirty = true;
+    }
+
+    /* ---- WebGL ---- */
+    const gl = canvas.getContext('webgl', { antialias: true, alpha: true });
+    let prog,
+      loc = {},
+      bufTri,
+      bufNrm,
+      bufLine,
+      geo = null,
+      dirty = true;
+    if (gl) {
+      const sh = (type, src) => {
+        const s = gl.createShader(type);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        return s;
+      };
+      prog = gl.createProgram();
+      gl.attachShader(
+        prog,
+        sh(
+          gl.VERTEX_SHADER,
+          'attribute vec3 aPos; attribute vec3 aNrm; uniform mat3 uR; uniform float uZoom; uniform vec2 uFit; varying vec3 vN;' +
+            'void main(){ vec3 q = uR * aPos * uZoom; vN = uR * aNrm; float z = q.z - 4.0;' +
+            ' gl_Position = vec4(q.x * 2.6 * uFit.x, q.y * 2.6 * uFit.y, -1.086957 * z - 1.043478, -z); }',
+        ),
+      );
+      gl.attachShader(
+        prog,
+        sh(
+          gl.FRAGMENT_SHADER,
+          'precision mediump float; varying vec3 vN; uniform vec3 uColor; uniform vec3 uBack; uniform float uFlat;' +
+            'void main(){ if (uFlat > 0.5) { gl_FragColor = vec4(uColor, 1.0); return; }' +
+            ' vec3 n = normalize(vN); vec3 base = uColor; if (!gl_FrontFacing) { n = -n; base = uBack; }' +
+            ' float d = max(dot(n, normalize(vec3(0.35, 0.55, 1.0))), 0.0); gl_FragColor = vec4(base * (0.4 + 0.6 * d), 1.0); }',
+        ),
+      );
+      gl.linkProgram(prog);
+      gl.useProgram(prog);
+      for (const n of ['uR', 'uZoom', 'uFit', 'uColor', 'uBack', 'uFlat'])
+        loc[n] = gl.getUniformLocation(prog, n);
+      loc.aPos = gl.getAttribLocation(prog, 'aPos');
+      loc.aNrm = gl.getAttribLocation(prog, 'aNrm');
+      bufTri = gl.createBuffer();
+      bufNrm = gl.createBuffer();
+      bufLine = gl.createBuffer();
+      gl.enableVertexAttribArray(loc.aPos);
+      gl.enableVertexAttribArray(loc.aNrm);
+      gl.enable(gl.DEPTH_TEST);
+      gl.depthFunc(gl.LEQUAL);
+      gl.polygonOffset(1, 1);
+    } else {
+      stage.querySelector('.hint').textContent =
+        '這個瀏覽器沒有開啟 WebGL，無法顯示 3D，匯出功能仍可使用。';
+    }
+
+    function cssColor(name) {
+      const v = getComputedStyle(document.documentElement)
+        .getPropertyValue(name)
+        .trim()
+        .replace('#', '');
+      return [0, 2, 4].map((i) => parseInt(v.substr(i, 2), 16) / 255);
+    }
+    function attrib(buffer) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.vertexAttribPointer(loc.aPos, 3, gl.FLOAT, false, 0, 0);
+    }
+    function draw() {
+      if (!gl || !geo) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.max(1, Math.round(canvas.clientWidth * dpr)),
+        h = Math.max(1, Math.round(canvas.clientHeight * dpr));
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+      gl.viewport(0, 0, w, h);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      const a = w / h,
+        R = S.R;
+      gl.uniformMatrix3fv(loc.uR, false, [
+        R[0],
+        R[3],
+        R[6],
+        R[1],
+        R[4],
+        R[7],
+        R[2],
+        R[5],
+        R[8],
+      ]);
+      gl.uniform1f(loc.uZoom, S.zoom);
+      gl.uniform2f(loc.uFit, a >= 1 ? 1 / a : 1, a >= 1 ? 1 : a);
+      const isTet = S.mesh.tets.length > 0;
+      if (S.mode !== 'wire') {
+        attrib(bufTri);
+        gl.bindBuffer(gl.ARRAY_BUFFER, bufNrm);
+        gl.vertexAttribPointer(loc.aNrm, 3, gl.FLOAT, false, 0, 0);
+        gl.uniform1f(loc.uFlat, 0);
+        gl.uniform3fv(loc.uColor, cssColor('--mesh-fill'));
+        gl.uniform3fv(loc.uBack, cssColor('--mesh-back'));
+        if (isTet) gl.enable(gl.CULL_FACE);
+        else gl.disable(gl.CULL_FACE); // tets are closed, so hidden twin faces never fight
+        gl.enable(gl.POLYGON_OFFSET_FILL);
+        gl.drawArrays(gl.TRIANGLES, 0, geo.tri.length / 3);
+        gl.disable(gl.POLYGON_OFFSET_FILL);
+      }
+      if (S.mode !== 'fill') {
+        attrib(bufLine);
+        gl.vertexAttribPointer(loc.aNrm, 3, gl.FLOAT, false, 0, 0);
+        gl.uniform1f(loc.uFlat, 1);
+        gl.uniform3fv(loc.uColor, cssColor('--mesh-line'));
+        gl.drawArrays(gl.LINES, 0, geo.line.length / 3);
+      }
+    }
+    let last = 0,
+      dragging = false;
+    function frame(t) {
+      const dt = Math.min(0.05, (t - last) / 1000);
+      last = t;
+      if (S.auto && !dragging) rotate(0, dt * 0.35);
+      if (dirty) {
+        draw();
+        dirty = false;
+      }
+      requestAnimationFrame(frame);
+    }
+    new ResizeObserver(() => {
+      dirty = true;
+    }).observe(canvas);
+    matchMedia('(prefers-color-scheme: dark)').addEventListener(
+      'change',
+      () => {
+        dirty = true;
+      },
+    );
+    new MutationObserver(() => {
+      dirty = true;
+    }).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+
+    /* ---- state → mesh → buffers ---- */
+    function makeMesh() {
+      const l = S.level[S.kind];
+      if (S.kind === 'tri') return icosphere(l - 1);
+      if (S.kind === 'quad') return quadTorus(8 * l, 4 * l);
+      if (S.kind === 'tet') return tetBall(l);
+      return S.custom;
+    }
+    function rebuild(remesh) {
+      if (remesh) S.mesh = makeMesh();
+      geo = buildGeometry(S.mesh, {
+        shrink: +$('shrink').value / 100,
+        clip:
+          +$('clip').value >= 100 ? Infinity : -1 + (2 * $('clip').value) / 100,
+      });
+      if (gl) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, bufTri);
+        gl.bufferData(gl.ARRAY_BUFFER, geo.tri, gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, bufNrm);
+        gl.bufferData(gl.ARRAY_BUFFER, geo.nrm, gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, bufLine);
+        gl.bufferData(gl.ARRAY_BUFFER, geo.line, gl.STATIC_DRAW);
+      }
+      dirty = true;
+      if (remesh) {
+        renderStats();
+        renderExport();
+      }
+      renderPanel();
+    }
+    function renderStats() {
+      const s = meshStats(S.mesh),
+        n = (x) => x.toLocaleString('en-US');
+      const tet = s.T > 0;
+      $('stats').innerHTML =
+        '<span>V <b>' +
+        n(s.V) +
+        '</b></span><span>E <b>' +
+        n(s.E) +
+        '</b></span><span>F <b>' +
+        n(s.F) +
+        '</b></span>' +
+        (tet ? '<span>T <b>' + n(s.T) + '</b></span>' : '') +
+        '<span>' +
+        (tet ? 'V−E+F−T' : 'V−E+F') +
+        ' = <b>' +
+        s.chi +
+        '</b></span>';
+    }
+    function renderPanel() {
+      const isTet = S.mesh.tets.length > 0,
+        custom = S.kind === 'custom';
+      document
+        .querySelectorAll('#kinds button')
+        .forEach((b) =>
+          b.setAttribute('aria-pressed', b.dataset.kind === S.kind),
+        );
+      document
+        .querySelectorAll('#modes button')
+        .forEach((b) =>
+          b.setAttribute('aria-pressed', b.dataset.mode === S.mode),
+        );
+      $('row-level').hidden = custom;
+      $('row-shrink').hidden = $('row-clip').hidden = !isTet;
+      if (!custom) {
+        $('level').value = S.level[S.kind];
+        $('level-out').textContent = 'L' + S.level[S.kind];
+      }
+      $('shrink-out').textContent = $('shrink').value + '%';
+      $('clip-out').textContent =
+        +$('clip').value >= 100 ? '全部' : geo.shown + ' 個';
+      $('about').textContent = custom
+        ? S.customName +
+          '：' +
+          (isTet
+            ? '體網格，' +
+              S.mesh.tets.length.toLocaleString('en-US') +
+              ' 個四面體。'
+            : '表面網格，' +
+              S.mesh.faces.length.toLocaleString('en-US') +
+              ' 個面。')
+        : ABOUT[S.kind];
+      $('auto').checked = S.auto;
+    }
+
+    /* ---- export ---- */
+    function fmtNote() {
+      const isTet = S.mesh.tets.length > 0,
+        hasQuad = S.mesh.faces.some((f) => f.length > 3),
+        f = S.fmt;
+      if (isTet && ['obj', 'stl', 'ply', 'off'].includes(f))
+        return (
+          f.toUpperCase() +
+          ' 沒有體積元素。只會匯出外表面的三角形，內部的四面體全部消失' +
+          (f === 'stl' ? '，頂點也不再共用。' : '。')
+        );
+      if (f === 'stl')
+        return hasQuad
+          ? 'STL 只收三角形，每個 quad 會被切成兩個；而且每個三角形各寫三個座標，頂點不共用。'
+          : '每個三角形各寫三個座標，同一個頂點重複出現很多次，鄰接關係不在檔案裡。';
+      if (f === 'obj')
+        return 'v 是頂點，f 是面，索引從 1 開始。面可以有任意多個頂點，quad 原樣保留。';
+      if (f === 'ply')
+        return '標頭先宣告有哪些元素和屬性，end_header 之後才是資料。索引從 0 開始。';
+      if (f === 'off')
+        return '最精簡的格式：一行數量，接著頂點，再接著面。索引從 0 開始。';
+      if (f === 'vtk')
+        return (
+          'UNSTRUCTURED_GRID 用 CELL_TYPES 區分元素：5 是三角形、9 是四邊形、10 是四面體。' +
+          (isTet ? '四面體完整保留。' : '')
+        );
+      if (f === 'msh')
+        return 'Gmsh 2.2：每個元素一列，第二欄是類型，2 三角形、3 四邊形、4 四面體，後面兩個 1 是群組標籤。';
+      return 'MEDIT：每種元素一個區塊，每列最後一個數字是參考標籤。索引從 1 開始。';
+    }
+    function fileBase() {
+      return S.kind === 'custom'
+        ? S.customName.replace(/\.[^.]+$/, '')
+        : { tri: 'icosphere', quad: 'quad-torus', tet: 'tet-ball' }[S.kind];
+    }
+    function renderExport() {
+      document
+        .querySelectorAll('#fmts button')
+        .forEach((b) =>
+          b.setAttribute('aria-pressed', b.dataset.fmt === S.fmt),
+        );
+      S.text = WRITERS[S.fmt](S.mesh);
+      const all = S.text.split('\n'),
+        n = all.length - 1;
+      $('preview').textContent =
+        all.slice(0, 40).join('\n') +
+        (n > 40 ? '\n…（共 ' + n.toLocaleString('en-US') + ' 行）' : '');
+      $('preview').scrollTop = 0;
+      $('preview-label').textContent =
+        fileBase() +
+        '.' +
+        S.fmt +
+        ' · ' +
+        (S.text.length / 1024).toFixed(1) +
+        ' KB';
+      $('fmt-note').textContent = fmtNote();
+      $('download').textContent = '下載 .' + S.fmt;
+    }
+    const inViewer = !!(window.claude && window.claude.use);
+    const saver = inViewer
+      ? window.claude.use('downloads').catch(() => null)
+      : Promise.resolve(null);
+    async function download() {
+      const name = fileBase() + '.' + S.fmt;
+      if (!inViewer) {
+        const a = document.createElement('a'),
+          url = URL.createObjectURL(new Blob([S.text], { type: 'text/plain' }));
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        statusEl.textContent = '已下載 ' + name;
+        return;
+      }
+      const ns = await saver;
+      if (!ns) {
+        statusEl.textContent =
+          '這個畫面不能存檔。請按「複製全文」，貼到文字編輯器存成 ' + name;
+        return;
+      }
+      try {
+        await ns.save({ filename: name + '.txt', data: S.text });
+        statusEl.textContent =
+          '已儲存。這裡只能存成 .txt，把檔名結尾的 .txt 拿掉就是 ' + name;
+      } catch (e) {
+        statusEl.textContent =
+          e && e.code === 'declined'
+            ? '已取消儲存。'
+            : '這裡無法存檔。請按「複製全文」，貼到文字編輯器存成 ' + name;
+      }
+    }
+    function copyAll() {
+      const fallback = () => {
+        $('preview').textContent = S.text;
+        const r = document.createRange();
+        r.selectNodeContents($('preview'));
+        const sel = getSelection();
+        sel.removeAllRanges();
+        sel.addRange(r);
+        statusEl.textContent =
+          '無法直接寫入剪貼簿。全文已選取，請按 Ctrl + C。';
+      };
+      if (!navigator.clipboard) return fallback();
+      navigator.clipboard.writeText(S.text).then(() => {
+        statusEl.textContent =
+          '已複製 ' + fileBase() + '.' + S.fmt + ' 的全文。';
+      }, fallback);
+    }
+
+    /* ---- load ---- */
+    async function loadFile(file) {
+      if (!file) return;
+      statusEl.textContent = '讀取 ' + file.name + '…';
+      try {
+        const mesh = parseMesh(file.name, await file.arrayBuffer());
+        S.custom = mesh;
+        S.customName = file.name;
+        S.kind = 'custom';
+        $('k-custom').hidden = false;
+        $('k-custom').textContent =
+          file.name.length > 22 ? file.name.slice(0, 20) + '…' : file.name;
+        rebuild(true);
+        statusEl.textContent = '已載入 ' + file.name;
+      } catch (e) {
+        statusEl.textContent =
+          '載入失敗：' + (e && e.message ? e.message : '檔案格式讀不懂');
+      }
+    }
+
+    /* ---- wiring ---- */
+    $('fmts').innerHTML = FORMATS.map(
+      ([k, n]) =>
+        '<button type="button" id="f-' +
+        k +
+        '" data-fmt="' +
+        k +
+        '">' +
+        n +
+        '</button>',
+    ).join('');
+    $('kinds').addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (b) {
+        S.kind = b.dataset.kind;
+        rebuild(true);
+      }
+    });
+    $('modes').addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (b) {
+        S.mode = b.dataset.mode;
+        renderPanel();
+        dirty = true;
+      }
+    });
+    $('fmts').addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (b) {
+        S.fmt = b.dataset.fmt;
+        statusEl.textContent = '';
+        renderExport();
+      }
+    });
+    $('level').addEventListener('input', (e) => {
+      S.level[S.kind] = +e.target.value;
+      rebuild(true);
+    });
+    $('shrink').addEventListener('input', () => rebuild(false));
+    $('clip').addEventListener('input', () => rebuild(false));
+    $('auto').addEventListener('change', (e) => {
+      S.auto = e.target.checked;
+    });
+    $('reset').addEventListener('click', () => {
+      S.R = START.slice();
+      S.zoom = 1;
+      dirty = true;
+    });
+    $('download').addEventListener('click', download);
+    $('copy').addEventListener('click', copyAll);
+    $('file').addEventListener('change', (e) => {
+      loadFile(e.target.files[0]);
+      e.target.value = '';
+    });
+    stage.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      stage.classList.add('drop');
+    });
+    stage.addEventListener('dragleave', () => stage.classList.remove('drop'));
+    stage.addEventListener('drop', (e) => {
+      e.preventDefault();
+      stage.classList.remove('drop');
+      loadFile(e.dataTransfer.files[0]);
+    });
+
+    const pointers = new Map();
+    let pinch = 0;
+    const setZoom = (z) => {
+      S.zoom = Math.min(2.3, Math.max(0.45, z));
+      dirty = true;
+    };
+    canvas.addEventListener('pointerdown', (e) => {
+      canvas.setPointerCapture(e.pointerId);
+      pointers.set(e.pointerId, [e.clientX, e.clientY]);
+      dragging = true;
+      pinch = 0;
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      const p = pointers.get(e.pointerId);
+      if (!p) return;
+      const dx = e.clientX - p[0],
+        dy = e.clientY - p[1];
+      pointers.set(e.pointerId, [e.clientX, e.clientY]);
+      if (pointers.size === 1) rotate(dy * 0.008, dx * 0.008);
+      else if (pointers.size === 2) {
+        const [a, b] = [...pointers.values()],
+          d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+        if (pinch) setZoom((S.zoom * d) / pinch);
+        pinch = d;
+      }
+    });
+    const release = (e) => {
+      pointers.delete(e.pointerId);
+      pinch = 0;
+      dragging = pointers.size > 0;
+    };
+    canvas.addEventListener('pointerup', release);
+    canvas.addEventListener('pointercancel', release);
+    canvas.addEventListener(
+      'wheel',
+      (e) => {
+        e.preventDefault();
+        setZoom(S.zoom * Math.exp(-e.deltaY * 0.0012));
+      },
+      { passive: false },
+    );
+    canvas.addEventListener('keydown', (e) => {
+      const k = {
+        ArrowLeft: [0, -0.12],
+        ArrowRight: [0, 0.12],
+        ArrowUp: [-0.12, 0],
+        ArrowDown: [0.12, 0],
+      }[e.key];
+      if (k) {
+        e.preventDefault();
+        rotate(k[0], k[1]);
+      } else if (e.key === '+' || e.key === '=') setZoom(S.zoom * 1.1);
+      else if (e.key === '-') setZoom(S.zoom / 1.1);
+    });
+
+    rebuild(true);
+    requestAnimationFrame(frame);
+  })();
+</script>
+  </body>
+</html>

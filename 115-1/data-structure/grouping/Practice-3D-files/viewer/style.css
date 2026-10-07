@@ -1,0 +1,237 @@
+:root {
+  --bg: #edf0f2;
+  --surface: #f8fafb;
+  --stage: #dde4e8;
+  --ink: #16222b;
+  --muted: #54646f;
+  --line: #c6d0d7;
+  --accent: #0a6f86;
+  --accent-ink: #ffffff;
+  --warm: #a84d14;
+  --mesh: #5fa6b8;
+  --wire: #12303a;
+  --grid: #b4c0c8;
+  --font-body:
+    'IBM Plex Sans', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei',
+    system-ui, sans-serif;
+  --font-mono:
+    'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f161b;
+    --surface: #162028;
+    --stage: #0a1014;
+    --ink: #e3eaee;
+    --muted: #93a3ad;
+    --line: #2b3943;
+    --accent: #4fc3d9;
+    --accent-ink: #06222a;
+    --warm: #e79a5f;
+    --mesh: #3f8fa3;
+    --wire: #d6eef4;
+    --grid: #24323b;
+    color-scheme: dark;
+  }
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+}
+.page {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding-inline: 20px;
+  padding-block: 24px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+}
+h1 {
+  font-size: clamp(22px, 3.5vw, 28px);
+  line-height: 1.2;
+  margin: 0;
+}
+.types {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+button,
+.filebtn {
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+button:hover,
+.filebtn:hover {
+  border-color: var(--accent);
+}
+button[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.filebtn {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.filebtn input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.filebtn:focus-within,
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.work {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 250px;
+  gap: 16px;
+  align-items: start;
+}
+.stage {
+  position: relative;
+  background: var(--stage);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  height: clamp(320px, calc(100vh - 190px), 780px);
+  overflow: hidden;
+}
+.stage.drop {
+  outline: 2px dashed var(--accent);
+  outline-offset: -8px;
+}
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+.empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+  color: var(--muted);
+  pointer-events: none;
+}
+[hidden] {
+  display: none !important;
+}
+.empty b {
+  color: var(--ink);
+  font-size: 18px;
+}
+.hud {
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 3px 10px;
+  border-radius: 3px;
+  pointer-events: none;
+}
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.box {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px 14px;
+}
+.label {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 12px;
+  font-size: 14px;
+}
+dt {
+  color: var(--muted);
+}
+dd {
+  margin: 0;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.keys {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+  font-size: 13.5px;
+}
+.keys b {
+  display: inline-block;
+  min-width: 5.4em;
+  font-weight: 600;
+}
+.status {
+  font-size: 13.5px;
+  color: var(--warm);
+  min-height: 1.5em;
+  margin: 0;
+}
+@media (max-width: 860px) {
+  .work {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .stage {
+    height: auto;
+    aspect-ratio: 1 / 1;
+  }
+}

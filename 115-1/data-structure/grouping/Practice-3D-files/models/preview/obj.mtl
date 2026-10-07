@@ -1,0 +1,5 @@
+newmtl mesh
+Kd 0.42 0.62 0.70
+
+newmtl meshAlt
+Kd 0.86 0.89 0.91
