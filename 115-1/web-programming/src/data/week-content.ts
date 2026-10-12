@@ -159,4 +159,49 @@ document.querySelectorAll<HTMLButtonElement>("[data-fly]").forEach((btn) => {
 });`,
     },
   },
-};
+
+  6: {
+    objectives: [
+      '認識 HTML 表單的基本組成：form、label、input、name／id，以及 radio、checkbox、select、date、range、textarea 等元件',
+      '用 Bootstrap 的表單樣式排版：Floating labels、Input group、btn-check（把單選／複選做成卡片與標籤）、Switch、Grid 響應式欄位',
+      '用 HTML5 原生驗證（required、minlength、pattern、min／max）搭配 Bootstrap 的 was-validated 顯示錯誤訊息',
+      '用 JavaScript 處理表單事件：input 做即時預覽、submit 搭配 preventDefault()、reset 後更新畫面，並用 FormData／getAll() 讀取資料',
+      '用 setCustomValidity() 補上 HTML 屬性做不到的規則：跨欄位比對（確認密碼、緊急聯絡人手機、剩餘名額）、身分證字號檢查碼、複選至少一項、檔案類型與大小',
+      '讀 ValidityState（valueMissing、typeMismatch、patternMismatch…）產生錯誤訊息，做出錯誤摘要、aria-invalid 與離開欄位後才即時驗證的體驗，最後用 SweetAlert2 做確認視窗',
+    ],
+    showcase:
+      '老師要求每週成果分開，所以把 Week 5 的「山行 Trailhead」整份複製成 /demo/trailhead-w6/ 再加上表單（Week 5 的版本維持原樣）。新增三個表單：路線篩選（搜尋框、難度單選、天數滑桿，打字當下就即時過濾卡片）、三步驟線上報名（每一步各自驗證，沒過會停在該步並把游標移到第一個錯誤欄位），以及頁尾的電子報訂閱。驗證的部分做得比較完整：必填、長度、Email／網址／手機格式、生日需滿 16 歲、說明會日期不能早於今天等用 HTML5 屬性；身分證字號檢查碼、密碼與確認密碼一致、通知方式至少勾一項、勾了 LINE 才出現且必填的 LINE ID、上傳檔案的類型與大小（2 MB）用 JavaScript 補上。欄位離開後才開始即時顯示對錯，驗證沒過時表單上方會列出所有錯誤欄位（點了會跳過去），另外還有密碼強度條、顯示／隱藏密碼和必填欄位完成度。報名表單右邊有一張「登山證」會跟著輸入內容即時更新，包含依梯次、人數、租借裝備算出的預估費用；梯次表的「選這梯」會把梯次帶進表單，送出後名額也會跟著扣掉。所有資料都只留在瀏覽器，不會傳到任何伺服器。',
+    links: [
+      { label: '查看 Demo', url: '/demo/trailhead-w6/', primary: true },
+      {
+        label: '原始碼（GitHub）',
+        url: 'https://github.com/qmkc/nfu-coursework/tree/main/115-1/web-programming/src/app/demo/trailhead-w6',
+      },
+      { label: 'Week 5 的版本（沒有表單）', url: '/demo/trailhead/' },
+      { label: '老師的範例（GoLearn 表單應用教學網站）', url: 'https://goclass.infinityfreeapp.com/weekly/week06/index.html' },
+    ],
+    code: {
+      lang: 'ts',
+      filename: 'src/app/demo/trailhead-w6/forms.ts',
+      snippet: `// HTML 屬性寫不出來的跨欄位規則，用 setCustomValidity() 補上
+function applyCustomRules(): void {
+  const sameNumber = emergencyPhone.value !== "" && emergencyPhone.value === phone.value;
+  emergencyPhone.setCustomValidity(sameNumber ? "same" : "");
+
+  const seats = seatsLeft[Number(sessionSelect.value)];
+  const overbooked = sessionSelect.value !== "" && Number(people.value) > seats;
+  people.setCustomValidity(overbooked ? "overbooked" : "");
+}
+
+// 驗證單一步驟：沒過就顯示 Bootstrap 的錯誤樣式，並把游標移到第一個錯誤欄位
+function validateStep(index: number): boolean {
+  applyCustomRules();
+  const step = steps[index];
+  step.classList.add("was-validated");
+  const invalid = step.querySelector<HTMLElement>(":invalid");
+  if (!invalid) return true;
+  invalid.focus();
+  return false;
+}`,
+    },
+  },};

@@ -98,6 +98,27 @@ src/app/demo/trailhead/
 
 站上的里程與海拔剖面是概略值，梯次、領隊與報名流程皆為虛構，沒有任何資料會被送出。
 
+## Week 6 Demo（`/demo/trailhead-w6/`）
+
+Week 6 教表單。老師要求每週成果分開，所以不是直接改 Week 5，而是把 `src/app/demo/trailhead/` 整份複製成 `src/app/demo/trailhead-w6/` 再修改——兩個資料夾互不引用，Week 5 的版本維持原樣。多出來的東西集中在 `forms.ts`（由 `initTrailPage.ts` 呼叫）：
+
+| 表單 | 用到的東西 |
+| --- | --- |
+| 路線篩選 `#routeFilter` | Input group 搜尋框、btn-check 單選、range＋output；`input` 事件即時過濾 Swiper 卡片，`reset` 後重新套用 |
+| 線上報名 `#signupForm` | 三步驟、Floating labels、select／number／date／range／switch／textarea、btn-check 做的單選卡片與複選標籤；每步用 `was-validated` 驗證，`setCustomValidity()` 處理跨欄位規則，`FormData`／`getAll()` 讀值，SweetAlert2 確認 |
+| 電子報 `#newsForm` | Input group＋HTML5 `type="email"`／`required` |
+
+報名表單的驗證項目：
+
+| 類型 | 項目 |
+| --- | --- |
+| HTML5 屬性 | `required`、`minlength`／`maxlength`、`pattern`（手機、身分證格式、密碼需含英數、LINE ID）、`type="email"`／`url`、`min`／`max`（人數 1–4、生日需滿 16 歲、說明會日期不早於今天） |
+| `setCustomValidity()` | 身分證字號檢查碼、確認密碼需一致、緊急聯絡人手機不能與本人相同、人數不能超過剩餘名額、通知方式至少勾一項、上傳檔案限 PDF／JPG／PNG 且 2 MB 以內 |
+| 條件欄位 | 勾選 LINE 才顯示 LINE ID 並變成必填（沒勾時 `disabled`，不參與驗證也不進 `FormData`） |
+| 回饋 | 離開欄位後才開始即時標示對錯（`is-valid`／`is-invalid`＋`aria-invalid`）、每步驟的錯誤摘要（讀 `ValidityState` 產生訊息，點了跳到該欄位）、密碼強度條與規則清單、顯示／隱藏密碼、必填欄位完成度、檔案名稱與縮圖預覽 |
+
+身分證字號在摘要裡只顯示遮罩後的樣子，密碼完全不顯示；頁面上也提示不要填真實證號與密碼。
+報名表單旁的「登山證」是即時預覽，費用 =（梯次每人費用＋租借裝備）× 人數。使用者輸入的內容一律用 `textContent` 放進畫面，不經過 `innerHTML`。沒有任何資料會送出。
 ## 部署
 
 依課程要求，使用 **InfinityFree** 作為網站部署平台，透過 **GitHub Actions** 自動化部署，`scripts/deploy.sh` 執行實際的部署動作。

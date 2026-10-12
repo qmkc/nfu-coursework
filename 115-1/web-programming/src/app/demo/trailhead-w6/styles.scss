@@ -1,0 +1,1792 @@
+// ------------------------------------------------------------------
+// Bootstrap overrides (must come before the bootstrap import)
+// ------------------------------------------------------------------
+$primary: #2f6b4f;
+$success: #14996a;
+$warning: #f0b23e;
+$dark: #16241d;
+$body-bg: #f7f5ef;
+$body-color: #1f2d26;
+$font-family-sans-serif:
+  "Noto Sans TC",
+  "Segoe UI",
+  system-ui,
+  -apple-system,
+  sans-serif;
+$headings-font-family: "Noto Serif TC", "Noto Sans TC", serif;
+$headings-font-weight: 900;
+$border-radius: 0.75rem;
+$border-radius-lg: 1rem;
+
+@import "bootstrap/scss/bootstrap";
+
+$paper: #f7f5ef;
+$tint: #ecefe6;
+$ink: #16241d;
+// Height of the hero's mountain silhouette — the hero reserves the same amount
+// of bottom padding so the ridges never run into the text above them.
+$ridge-height: clamp(6rem, 14vw, 11rem);
+
+// Anchor jumps shouldn't land underneath the fixed navbar.
+html:has(.trail-page) {
+  scroll-padding-top: 4.5rem;
+}
+
+.trail-page {
+  // clip, not hidden: a hidden box can still be scrolled sideways by focus()
+  // or scrollIntoView() landing on an element AOS has parked off-screen.
+  overflow-x: clip;
+
+  .btn {
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      color 0.2s ease;
+
+    &:not(:disabled):hover {
+      transform: translateY(-2px);
+    }
+
+    &:not(:disabled):active {
+      transform: translateY(0);
+    }
+  }
+}
+
+.scroll-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 1040;
+  height: 3px;
+  background: linear-gradient(90deg, $warning, #ffe2a6);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.to-top {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 1020;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border-radius: 50%;
+  box-shadow: 0 10px 24px -10px rgba($ink, 0.6);
+  opacity: 0;
+  visibility: hidden;
+  translate: 0 1rem;
+  transition:
+    opacity 0.3s ease,
+    translate 0.3s ease,
+    visibility 0.3s;
+
+  &.show {
+    opacity: 1;
+    visibility: visible;
+    translate: 0 0;
+  }
+}
+
+// ------------------------------------------------------------------
+// Navbar
+// ------------------------------------------------------------------
+.trail-nav {
+  padding-block: 0.9rem;
+  transition:
+    background-color 0.3s ease,
+    padding 0.3s ease,
+    box-shadow 0.3s ease;
+
+  .navbar-brand {
+    font-family: $headings-font-family;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+  }
+
+  .nav-link {
+    position: relative;
+    padding-inline: 0.8rem !important;
+
+    // Underline that grows from the centre on hover / for the current section.
+    &::after {
+      content: "";
+      position: absolute;
+      inset: auto 0.8rem 0.2rem;
+      height: 2px;
+      border-radius: 2px;
+      background: $warning;
+      transform: scaleX(0);
+      transition: transform 0.25s ease;
+    }
+
+    &:hover::after,
+    &.active::after {
+      transform: scaleX(1);
+    }
+  }
+
+  &.scrolled {
+    padding-block: 0.5rem;
+    background: rgba($ink, 0.94);
+    box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+  }
+
+  // The collapsed menu opens over the hero, so it needs its own backdrop.
+  @include media-breakpoint-down(lg) {
+    .navbar-collapse {
+      margin-top: 0.75rem;
+      padding: 0.75rem 1rem 1rem;
+      border-radius: $border-radius-lg;
+      background: rgba($ink, 0.96);
+    }
+  }
+}
+
+// ------------------------------------------------------------------
+// Hero
+// ------------------------------------------------------------------
+.trail-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 100vh;
+  padding: 6.5rem 0 calc(#{$ridge-height} + 2rem);
+  color: #fff;
+  // Shows through while the photo is still loading (or if it fails to).
+  background: linear-gradient(180deg, #0f2a2c 0%, #1d4a45 38%, #3f7a62 72%, #e8b56a 100%);
+  overflow: hidden;
+
+  > .container {
+    z-index: 2;
+  }
+
+  // Darkens the photo so the white headline stays readable on top of it.
+  // Sits above the photo and clouds, below the ridges and the text.
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+      linear-gradient(180deg, rgba(8, 22, 24, 0.7) 0%, transparent 30%),
+      linear-gradient(90deg, rgba(8, 22, 24, 0.72) 0%, rgba(8, 22, 24, 0.35) 55%, rgba(8, 22, 24, 0.05) 100%);
+  }
+}
+
+// Slow zoom on top of the scroll parallax (--hero-shift is set from JS).
+.hero-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  translate: 0 calc(var(--hero-shift, 0px) * 0.35);
+  animation: hero-zoom 24s ease-in-out infinite alternate;
+}
+
+@keyframes hero-zoom {
+  from {
+    scale: 1.02;
+  }
+
+  to {
+    scale: 1.14;
+  }
+}
+
+.hero-clouds span {
+  position: absolute;
+  left: -30%;
+  width: 28rem;
+  height: 7rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  filter: blur(34px);
+  animation: cloud-drift 60s linear infinite;
+
+  &:nth-child(1) {
+    top: 22%;
+  }
+
+  &:nth-child(2) {
+    top: 48%;
+    width: 36rem;
+    animation-duration: 85s;
+    animation-delay: -30s;
+  }
+
+  &:nth-child(3) {
+    top: 66%;
+    width: 22rem;
+    animation-duration: 48s;
+    animation-delay: -18s;
+  }
+}
+
+@keyframes cloud-drift {
+  to {
+    transform: translateX(170vw);
+  }
+}
+
+.hero-scroll {
+  position: absolute;
+  left: 50%;
+  bottom: calc(#{$ridge-height} * 0.55);
+  z-index: 2;
+  color: #fff;
+  font-size: 1.5rem;
+  opacity: 0.85;
+  animation: hero-bob 2s ease-in-out infinite;
+}
+
+@keyframes hero-bob {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+
+  50% {
+    transform: translate(-50%, 0.6rem);
+  }
+}
+
+.hero-eyebrow {
+  display: inline-block;
+  margin-bottom: 1.25rem;
+  padding: 0.35rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+}
+
+.hero-title {
+  margin-bottom: 1.25rem;
+  font-size: clamp(2.4rem, 6vw, 4.25rem);
+  line-height: 1.2;
+}
+
+.hero-typed {
+  display: inline-block;
+  // Holds the line open while Typed.js is between strings.
+  min-height: 1.2em;
+  color: #ffd98a;
+
+  .typed-cursor {
+    font-weight: 400;
+  }
+}
+
+.hero-lead {
+  max-width: 38rem;
+  margin-bottom: 2rem;
+  font-size: 1.15rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem 3rem;
+  margin: 2.25rem 0 0;
+
+  dt {
+    font-family: $headings-font-family;
+    font-size: 1.75rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  dd {
+    margin: 0;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.75);
+  }
+}
+
+.hero-ridges {
+  position: absolute;
+  inset: auto 0 -1px;
+  z-index: 1;
+  width: 100%;
+  height: $ridge-height;
+  pointer-events: none;
+
+  // The further back a ridge is, the faster it sinks as the page scrolls.
+  .ridge-far {
+    fill: rgba(22, 60, 54, 0.6);
+    translate: 0 calc(var(--hero-shift, 0px) * 0.22);
+  }
+
+  .ridge-mid {
+    fill: #1c4a3c;
+    translate: 0 calc(var(--hero-shift, 0px) * 0.1);
+  }
+
+  .ridge-near {
+    fill: $paper;
+  }
+}
+
+// ------------------------------------------------------------------
+// Peak-name marquee
+// ------------------------------------------------------------------
+.peak-marquee {
+  overflow: hidden;
+  padding: 0.9rem 0;
+  background: $ink;
+  color: rgba(255, 255, 255, 0.85);
+
+  &:hover .peak-marquee-track {
+    animation-play-state: paused;
+  }
+
+  ul {
+    display: flex;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding-inline: 1.75rem;
+    font-family: $headings-font-family;
+    font-size: 1.05rem;
+    white-space: nowrap;
+  }
+
+  i {
+    font-size: 0.6rem;
+    color: $warning;
+  }
+
+  span {
+    font-family: $font-family-sans-serif;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+    color: rgba(255, 255, 255, 0.55);
+  }
+}
+
+.peak-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 36s linear infinite;
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+// ------------------------------------------------------------------
+// Sections
+// ------------------------------------------------------------------
+.trail-notice {
+  position: relative;
+  z-index: 2;
+  margin-top: 1.5rem;
+
+  .alert {
+    border: 0;
+    box-shadow: 0 12px 30px -18px rgba($ink, 0.6);
+  }
+}
+
+.trail-section {
+  padding: 5rem 0;
+
+  h2 {
+    font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  }
+}
+
+.section-tint {
+  background: $tint;
+}
+
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2.25rem;
+
+  p {
+    margin: 0;
+    color: $text-muted;
+  }
+
+  // Accent bar under the heading, drawn once AOS reveals the section head.
+  h2::after {
+    content: "";
+    display: block;
+    width: 3.5rem;
+    height: 4px;
+    margin-top: 0.6rem;
+    border-radius: 4px;
+    background: $warning;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.7s ease 0.35s;
+  }
+
+  &.aos-animate h2::after {
+    transform: scaleX(1);
+  }
+}
+
+.section-dark {
+  background: $ink;
+  color: #fff;
+
+  .section-head p {
+    color: rgba(255, 255, 255, 0.65);
+  }
+}
+
+// ------------------------------------------------------------------
+// Route cards (Swiper)
+// ------------------------------------------------------------------
+.swiper-btn {
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+
+  &.swiper-button-disabled {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+}
+
+#trailSwiper {
+  // Room for the card shadow and the pagination dots below the cards.
+  padding: 0.5rem 0.25rem 3rem;
+  margin-inline: -0.25rem;
+
+  .swiper-slide {
+    height: auto;
+  }
+
+  .swiper-pagination-bullet {
+    width: 0.6rem;
+    height: 0.6rem;
+    background: $primary;
+  }
+}
+
+.trail-card {
+  border: 0;
+  overflow: hidden;
+  box-shadow: 0 14px 34px -22px rgba($ink, 0.55);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 26px 44px -22px rgba($ink, 0.6);
+
+    .trail-cover img {
+      scale: 1.08;
+    }
+  }
+
+  .card-title {
+    margin-bottom: 0.5rem;
+  }
+}
+
+.trail-cover {
+  position: relative;
+  height: 12rem;
+  overflow: hidden;
+  background: linear-gradient(160deg, #24544a, #8fbf9a);
+
+  img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: scale 0.6s ease;
+  }
+
+  // Keeps the badge and elevation readable on bright skies.
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba($ink, 0.45) 0%, transparent 45%);
+  }
+
+  // The route's elevation profile, drawn left to right when the card becomes
+  // the visible slide (pathLength="1" makes the dash maths unit-free).
+  svg {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: #fff;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+    transition: stroke-dashoffset 1.6s ease 0.2s;
+  }
+
+  .swiper-slide-visible & svg {
+    stroke-dashoffset: 0;
+  }
+
+  .badge {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 2;
+  }
+}
+
+.trail-elevation {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.9rem;
+  z-index: 2;
+  font-family: $headings-font-family;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+}
+
+.trail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  color: $text-muted;
+}
+
+// ------------------------------------------------------------------
+// Map (Leaflet)
+// ------------------------------------------------------------------
+.trail-map {
+  height: 28rem;
+  border-radius: $border-radius-lg;
+  box-shadow: 0 14px 34px -22px rgba($ink, 0.55);
+  // Keeps Leaflet's own stacking (panes go up to z-index 1000) below the navbar.
+  isolation: isolate;
+
+  @include media-breakpoint-down(lg) {
+    height: 22rem;
+  }
+}
+
+.trail-list .list-group-item {
+  padding-block: 0.8rem;
+
+  &.active .text-body-secondary {
+    color: rgba(255, 255, 255, 0.8) !important;
+  }
+}
+
+.trail-marker {
+  display: grid;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: $primary;
+  color: #fff;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+
+  // Radar-style ping around each summit.
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    border: 2px solid $primary;
+    animation: marker-ping 2.4s ease-out infinite;
+  }
+}
+
+@keyframes marker-ping {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+// ------------------------------------------------------------------
+// Photo gallery
+// ------------------------------------------------------------------
+.trail-gallery {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 12rem;
+  gap: 0.75rem;
+
+  @include media-breakpoint-down(md) {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: 9rem;
+  }
+}
+
+.gallery-item {
+  position: relative;
+  padding: 0;
+  border: 0;
+  border-radius: $border-radius-lg;
+  overflow: hidden;
+  background: #24352c;
+  cursor: zoom-in;
+
+  // 4-column mosaic: one large tile, two small, three wide.
+  &:nth-child(1) {
+    grid-area: span 2 / span 2;
+  }
+
+  &:nth-child(n + 4) {
+    grid-column: span 2;
+  }
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition:
+      scale 0.6s ease,
+      filter 0.6s ease;
+  }
+
+  &:hover img,
+  &:focus-visible img {
+    scale: 1.07;
+    filter: brightness(0.8);
+  }
+
+  &:focus-visible {
+    outline: 3px solid $warning;
+    outline-offset: 2px;
+  }
+}
+
+.gallery-caption {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2rem 1rem 0.8rem;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+  color: #fff;
+  font-weight: 700;
+  text-align: start;
+  translate: 0 100%;
+  transition: translate 0.35s ease;
+
+  .gallery-item:hover &,
+  .gallery-item:focus-visible & {
+    translate: 0 0;
+  }
+
+  // No hover on touch screens — keep the caption visible there.
+  @media (hover: none) {
+    translate: 0 0;
+  }
+}
+
+// ------------------------------------------------------------------
+// Charts
+// ------------------------------------------------------------------
+.chart-card {
+  border: 0;
+  box-shadow: 0 14px 34px -24px rgba($ink, 0.5);
+
+  h3 {
+    font-family: $font-family-sans-serif;
+    font-weight: 700;
+  }
+}
+
+.chart-box {
+  position: relative;
+  height: 18rem;
+}
+
+.chart-box-wide {
+  height: 20rem;
+}
+
+.profile-pills {
+  gap: 0.25rem;
+
+  .nav-link {
+    padding: 0.3rem 0.8rem;
+    border-radius: 50rem;
+    font-size: 0.85rem;
+  }
+}
+
+// ------------------------------------------------------------------
+// Gear checklist
+// ------------------------------------------------------------------
+.gear-progress {
+  height: 1.5rem;
+  border-radius: 50rem;
+  background: rgba($ink, 0.1);
+
+  .progress-bar {
+    font-weight: 700;
+    transition: width 0.4s ease;
+  }
+}
+
+.gear-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  text-align: start;
+  background: #fff;
+
+  i {
+    font-size: 1.2rem;
+    opacity: 0.35;
+  }
+
+  .btn-check:checked + & i {
+    opacity: 1;
+    animation: check-pop 0.4s ease;
+  }
+}
+
+@keyframes check-pop {
+  40% {
+    transform: scale(1.5) rotate(-12deg);
+  }
+}
+
+// ------------------------------------------------------------------
+// Schedule table, FAQ
+// ------------------------------------------------------------------
+.trail-table {
+  --bs-table-bg: #fff;
+
+  overflow: hidden;
+  border-radius: $border-radius-lg;
+  box-shadow: 0 14px 34px -24px rgba($ink, 0.5);
+
+  th,
+  td {
+    padding: 0.9rem 1rem;
+    white-space: nowrap;
+  }
+
+  thead th {
+    background: $ink;
+    color: #fff;
+    font-weight: 500;
+  }
+}
+
+.trail-faq {
+  max-width: 52rem;
+
+  .accordion-button {
+    font-weight: 700;
+  }
+}
+
+// ------------------------------------------------------------------
+// Footer, plan offcanvas, SweetAlert2
+// ------------------------------------------------------------------
+.trail-footer {
+  padding: 3rem 0;
+  background: $ink;
+  color: rgba(255, 255, 255, 0.75);
+
+  .h5 {
+    color: #fff;
+  }
+}
+
+.photo-credits {
+  margin: 2rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.78rem;
+  line-height: 1.9;
+
+  a {
+    margin-right: 0.9rem;
+    color: rgba(255, 255, 255, 0.75);
+    white-space: nowrap;
+  }
+}
+
+.plan-summary {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+
+  div {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border-radius: $border-radius;
+    background: $tint;
+  }
+
+  span {
+    display: block;
+    font-size: 0.8rem;
+    color: $text-muted;
+  }
+
+  strong {
+    font-size: 1.15rem;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.trail-swal {
+  border-radius: 1.25rem;
+
+  .swal2-title {
+    font-family: $headings-font-family;
+  }
+
+  .swal2-actions {
+    gap: 0.75rem;
+  }
+
+  .swal2-image {
+    width: 100%;
+    max-height: 14rem;
+    margin-top: 0;
+    border-radius: 1.25rem 1.25rem 0 0;
+    object-fit: cover;
+  }
+
+  // Photo popups carry their image flush with the top edge.
+  &:has(.swal2-image:not([style*="display: none"])) {
+    padding-top: 0;
+    overflow: hidden;
+  }
+}
+
+.trail-swal-photo .swal2-image {
+  max-height: 70vh;
+}
+
+// ==================================================================
+// Week 6 — forms
+// ==================================================================
+
+// Swiper and the rules below set `display`, which would otherwise beat the
+// UA stylesheet's [hidden] { display: none }.
+.swiper[hidden],
+.swiper-slide[hidden],
+.route-empty[hidden] {
+  display: none;
+}
+
+// ------------------------------------------------------------------
+// Route filter
+// ------------------------------------------------------------------
+.route-filter {
+  display: grid;
+  grid-template-columns: minmax(14rem, 1.4fr) auto minmax(9rem, 0.7fr) auto;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: $border-radius-lg;
+  background: #fff;
+  box-shadow: 0 14px 34px -26px rgba($ink, 0.5);
+
+  @include media-breakpoint-down(lg) {
+    grid-template-columns: 1fr auto;
+  }
+
+  .input-group-text {
+    border-right: 0;
+    background: #fff;
+    color: $primary;
+  }
+
+  .form-control {
+    border-left: 0;
+    padding-left: 0;
+
+    &:focus {
+      box-shadow: none;
+    }
+  }
+
+  // One focus ring around the whole search box instead of just the input.
+  .input-group {
+    border-radius: 50rem;
+    transition: box-shadow 0.2s ease;
+
+    > * {
+      border-color: $border-color;
+    }
+
+    > :first-child {
+      border-radius: 50rem 0 0 50rem;
+      padding-left: 1rem;
+    }
+
+    > :last-child {
+      border-radius: 0 50rem 50rem 0;
+    }
+
+    &:focus-within {
+      box-shadow: 0 0 0 0.25rem rgba($primary, 0.2);
+
+      > * {
+        border-color: $primary;
+      }
+    }
+  }
+}
+
+.route-filter-level {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+
+  .btn {
+    padding: 0.3rem 0.9rem;
+    font-size: 0.9rem;
+  }
+
+  @include media-breakpoint-down(lg) {
+    grid-column: 1 / -1;
+  }
+}
+
+.route-filter-days {
+  .form-label {
+    margin-bottom: 0;
+    font-size: 0.85rem;
+    color: $text-muted;
+  }
+
+  output {
+    font-weight: 700;
+    color: $primary;
+  }
+}
+
+.route-filter-reset {
+  padding-inline: 0;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.route-filter-count {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.85rem;
+  color: $text-muted;
+}
+
+.route-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 3.5rem 1rem;
+  border: 2px dashed rgba($ink, 0.15);
+  border-radius: $border-radius-lg;
+  color: $text-muted;
+
+  i {
+    font-size: 2.25rem;
+    color: $primary;
+  }
+}
+
+// ------------------------------------------------------------------
+// Sign-up wizard
+// ------------------------------------------------------------------
+.section-signup {
+  background:
+    radial-gradient(60rem 30rem at 100% 0%, rgba($warning, 0.16), transparent 60%),
+    radial-gradient(50rem 28rem at 0% 100%, rgba($primary, 0.14), transparent 60%),
+    $paper;
+}
+
+.signup-card {
+  padding: clamp(1.25rem, 3vw, 2.25rem);
+  border-radius: 1.5rem;
+  background: #fff;
+  box-shadow: 0 30px 60px -40px rgba($ink, 0.6);
+
+  .form-control,
+  .form-select {
+    border-color: rgba($ink, 0.14);
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      background-color 0.2s ease;
+
+    &:hover:not(:focus) {
+      border-color: rgba($primary, 0.5);
+    }
+  }
+
+  .form-range::-webkit-slider-thumb {
+    transition: scale 0.15s ease;
+
+    &:active {
+      scale: 1.25;
+    }
+  }
+}
+
+// Stepper: numbered dots joined by a track that fills up to the current step
+// (--step is set on the form by forms.ts).
+.signup-steps {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0 0 2rem;
+  padding: 0;
+  list-style: none;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    top: 1.1rem;
+    left: calc(100% / 6);
+    width: calc(100% * 2 / 3);
+    height: 3px;
+    border-radius: 3px;
+    background: rgba($ink, 0.1);
+  }
+
+  &::after {
+    background: $primary;
+    transform: scaleX(calc(var(--step, 0) / 2));
+    transform-origin: left;
+    transition: transform 0.5s ease;
+  }
+
+  button {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: 0.9rem;
+    color: $text-muted;
+  }
+
+  .step-dot {
+    display: grid;
+    place-items: center;
+    width: 2.3rem;
+    height: 2.3rem;
+    border: 3px solid rgba($ink, 0.1);
+    border-radius: 50%;
+    background: #fff;
+    font-weight: 700;
+    transition:
+      background-color 0.3s ease,
+      border-color 0.3s ease,
+      color 0.3s ease,
+      box-shadow 0.3s ease;
+
+    i {
+      display: none;
+    }
+  }
+
+  .active button {
+    color: $body-color;
+    font-weight: 700;
+  }
+
+  .active .step-dot {
+    border-color: $primary;
+    color: $primary;
+    box-shadow: 0 0 0 0.35rem rgba($primary, 0.15);
+  }
+
+  .done .step-dot {
+    border-color: $primary;
+    background: $primary;
+    color: #fff;
+
+    span {
+      display: none;
+    }
+
+    i {
+      display: block;
+      animation: check-pop 0.4s ease;
+    }
+  }
+}
+
+.signup-step {
+  display: none;
+  min-width: 0;
+
+  &.active {
+    display: block;
+    animation: step-in 0.45s ease;
+  }
+
+  &.shake {
+    animation: step-shake 0.4s ease;
+  }
+
+  legend {
+    margin-bottom: 1.25rem;
+    font-family: $headings-font-family;
+    font-size: 1.35rem;
+  }
+}
+
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateX(1.5rem);
+  }
+}
+
+@keyframes step-shake {
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+.signup-subhead {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.75rem 0 0.75rem;
+  font-weight: 700;
+
+  i {
+    color: $primary;
+  }
+}
+
+// The feedback sits outside .form-floating inside an input group, so
+// Bootstrap's sibling selector can't reach it.
+.was-validated .input-group:has(:invalid) > .invalid-feedback {
+  display: block;
+}
+
+.input-group > .form-floating:not(:first-child) > .form-control {
+  border-top-right-radius: $border-radius;
+  border-bottom-right-radius: $border-radius;
+}
+
+// Same reach problem for fields styled one at a time with .is-invalid.
+.input-group:has(.is-invalid) > .invalid-feedback {
+  display: block;
+}
+
+// Required-field completion bar under the stepper.
+.signup-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+
+  .progress {
+    flex: 1;
+    height: 0.4rem;
+    border-radius: 50rem;
+    background: rgba($ink, 0.08);
+  }
+
+  .progress-bar {
+    border-radius: 50rem;
+    background: linear-gradient(90deg, $primary, $success);
+    transition: width 0.4s ease;
+  }
+
+  small {
+    font-variant-numeric: tabular-nums;
+    color: $text-muted;
+    white-space: nowrap;
+  }
+}
+
+// Error summary shown when a step fails validation.
+.step-errors {
+  margin-bottom: 1.5rem;
+  border: 0;
+  border-left: 4px solid $danger;
+  animation: step-in 0.3s ease;
+
+  p {
+    margin-bottom: 0.4rem;
+    font-weight: 700;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.75rem;
+    font-size: 0.9rem;
+  }
+
+  button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+  }
+}
+
+// Password strength: four segments that fill and change colour with the score.
+.pw-meter {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.3rem;
+  margin-top: 0.6rem;
+
+  span {
+    height: 0.3rem;
+    border-radius: 50rem;
+    background: rgba($ink, 0.1);
+    transition: background-color 0.3s ease;
+  }
+
+  &[data-score="1"] span:nth-child(-n + 1) {
+    background: $danger;
+  }
+
+  &[data-score="2"] span:nth-child(-n + 2) {
+    background: $warning;
+  }
+
+  &[data-score="3"] span:nth-child(-n + 3) {
+    background: $success;
+  }
+
+  &[data-score="4"] span {
+    background: $primary;
+  }
+}
+
+.pw-strength {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  color: $text-muted;
+}
+
+.pw-rules {
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8rem;
+  color: $text-muted;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: color 0.2s ease;
+
+    &::before {
+      content: "\F28A"; // bi-circle
+      font-family: bootstrap-icons;
+    }
+
+    &.met {
+      color: $success;
+
+      &::before {
+        content: "\F26A"; // bi-check-circle-fill
+      }
+    }
+  }
+}
+
+#togglePassword {
+  border-color: rgba($ink, 0.14);
+}
+
+// "Pick at least one" message for a checkbox group.
+.group-feedback {
+  display: none;
+  margin-top: 0.4rem;
+  font-size: $form-feedback-font-size;
+  color: $form-feedback-invalid-color;
+
+  .was-validated:has(input[name="notify"]:invalid) & {
+    display: block;
+  }
+}
+
+.reveal-field {
+  margin-top: 0.75rem;
+  animation: step-in 0.35s ease;
+}
+
+.file-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: $border-radius;
+  background: $tint;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+
+  &[hidden] {
+    display: none;
+  }
+
+  img {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.5rem;
+    object-fit: cover;
+  }
+
+  i {
+    font-size: 1.75rem;
+    color: $danger;
+  }
+}
+// Radio cards
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+
+  @include media-breakpoint-down(sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.choice-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  height: 100%;
+  padding: 1rem;
+  border: 2px solid rgba($ink, 0.1);
+  border-radius: $border-radius-lg;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  i {
+    margin-bottom: 0.35rem;
+    font-size: 1.5rem;
+    color: $primary;
+  }
+
+  small {
+    color: $text-muted;
+  }
+
+  &:hover {
+    border-color: rgba($primary, 0.5);
+    transform: translateY(-2px);
+  }
+
+  .btn-check:checked + & {
+    border-color: $primary;
+    background: rgba($primary, 0.07);
+    box-shadow: 0 10px 22px -16px rgba($primary, 0.9);
+  }
+
+  .btn-check:focus-visible + & {
+    outline: 3px solid rgba($primary, 0.35);
+    outline-offset: 2px;
+  }
+
+  .was-validated .btn-check:invalid + & {
+    border-color: rgba($danger, 0.6);
+  }
+}
+
+.choice-feedback {
+  display: none;
+  margin-top: 0.4rem;
+  font-size: $form-feedback-font-size;
+  color: $form-feedback-invalid-color;
+
+  .was-validated:has(input[name="experience"]:invalid) & {
+    display: block;
+  }
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+
+  small {
+    margin-left: 0.4rem;
+    opacity: 0.7;
+  }
+}
+
+#fitnessOut {
+  font-weight: 700;
+  color: $primary;
+}
+
+.signup-summary {
+  margin: 0;
+
+  > div {
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    gap: 0.75rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px dashed rgba($ink, 0.12);
+  }
+
+  dt {
+    font-weight: 500;
+    color: $text-muted;
+  }
+
+  dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  > div:last-child {
+    border-bottom: 0;
+
+    dd {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: $primary;
+    }
+  }
+}
+
+// Inside the confirm dialog the list scrolls instead of stretching the popup.
+.trail-swal .signup-summary {
+  max-height: 42vh;
+  padding-right: 0.5rem;
+  overflow-y: auto;
+  font-size: 0.9rem;
+
+  > div {
+    grid-template-columns: 5.5rem 1fr;
+    padding: 0.4rem 0;
+  }
+}
+
+.signup-agree {
+  margin-top: 1.25rem;
+  padding: 1rem 1rem 1rem 2.75rem;
+  border-radius: $border-radius;
+  background: $tint;
+}
+
+.signup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba($ink, 0.08);
+
+  .btn-link {
+    padding-inline: 0;
+    text-decoration: none;
+  }
+}
+
+// ------------------------------------------------------------------
+// Live preview — the "trail pass"
+// ------------------------------------------------------------------
+.pass-card {
+  position: sticky;
+  top: 5.5rem;
+  max-width: 26rem;
+  margin-inline: auto;
+  border-radius: 1.5rem;
+  background: $ink;
+  color: #fff;
+  box-shadow: 0 34px 60px -34px rgba($ink, 0.9);
+  rotate: 1.5deg;
+  transition:
+    rotate 0.5s ease,
+    translate 0.5s ease;
+
+  &:hover,
+  &.ready {
+    rotate: 0deg;
+  }
+
+  &:hover {
+    translate: 0 -4px;
+  }
+}
+
+.pass-photo {
+  position: relative;
+  height: 11rem;
+  border-radius: 1.5rem 1.5rem 0 0;
+  overflow: hidden;
+  background: linear-gradient(160deg, #24544a, #8fbf9a);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba($ink, 0.25), rgba($ink, 0.85));
+  }
+}
+
+.pass-tag {
+  position: absolute;
+  top: 1rem;
+  left: 1.25rem;
+  z-index: 1;
+  padding: 0.2rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 50rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+}
+
+.pass-route {
+  position: absolute;
+  inset: auto 1.25rem 0.9rem;
+  z-index: 1;
+  margin: 0;
+  font-family: $headings-font-family;
+  font-size: 1.5rem;
+}
+
+.pass-body {
+  padding: 1.25rem 1.25rem 1rem;
+}
+
+.pass-label {
+  margin: 0 0 0.15rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.pass-name {
+  margin: 0 0 1rem;
+  font-family: $headings-font-family;
+  font-size: 1.6rem;
+  overflow-wrap: anywhere;
+}
+
+.pass-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 0.9rem 1rem;
+  margin: 0 0 1rem;
+
+  dt {
+    font-size: 0.7rem;
+    font-weight: 400;
+    letter-spacing: 0.14em;
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  dd {
+    margin: 0;
+    font-weight: 700;
+  }
+}
+
+.pass-dots {
+  display: flex;
+  gap: 0.3rem;
+  padding-top: 0.35rem;
+
+  span {
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transition:
+      background-color 0.25s ease,
+      scale 0.25s ease;
+
+    &.on {
+      background: $warning;
+      scale: 1.1;
+    }
+  }
+}
+
+.pass-rentals {
+  margin: 0;
+  font-weight: 700;
+}
+
+// Perforated tear line with a notch cut out of each edge.
+.pass-foot {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem 1.25rem;
+  border-top: 2px dashed rgba(255, 255, 255, 0.22);
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    top: -0.8rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: $paper;
+  }
+
+  &::before {
+    left: -0.75rem;
+  }
+
+  &::after {
+    right: -0.75rem;
+  }
+}
+
+.pass-fee {
+  margin: 0;
+  font-size: 0.95rem;
+
+  strong {
+    font-family: $headings-font-family;
+    font-size: 1.75rem;
+    font-variant-numeric: tabular-nums;
+    color: $warning;
+  }
+}
+
+.pass-barcode {
+  width: 6.5rem;
+  height: 2.6rem;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.85) 0 2px,
+    transparent 2px 4px,
+    rgba(255, 255, 255, 0.85) 4px 5px,
+    transparent 5px 9px,
+    rgba(255, 255, 255, 0.85) 9px 12px,
+    transparent 12px 14px
+  );
+  opacity: 0.7;
+}
+
+// A value in the pass that just changed.
+.flash {
+  animation: value-flash 0.6s ease;
+}
+
+@keyframes value-flash {
+  from {
+    color: $warning;
+    text-shadow: 0 0 14px rgba($warning, 0.8);
+  }
+}
+
+// ------------------------------------------------------------------
+// Newsletter (footer)
+// ------------------------------------------------------------------
+.news-form {
+  max-width: 24rem;
+
+  .form-label {
+    font-size: 0.85rem;
+    color: #fff;
+  }
+
+  .input-group-text,
+  .form-control {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+
+  .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  .invalid-feedback {
+    color: #ffb3ad;
+  }
+}
+// Everything above that moves on its own is decoration.
+@media (prefers-reduced-motion: reduce) {
+  .hero-photo,
+  .hero-clouds span,
+  .hero-scroll,
+  .peak-marquee-track,
+  .trail-marker::after,
+  .signup-step.active,
+  .signup-step.shake,
+  .step-errors,
+  .reveal-field,
+  .flash {
+    animation: none;
+  }
+}

@@ -4,7 +4,7 @@ export const weekThemes: Record<number, string | null> = {
   3: 'Bootstrap 常用元件練習：iPhone Duo 形象頁',
   4: '教師節放假（停課）',
   5: 'Bootstrap 搭配 JS 函式庫：山行 Trailhead 步道指南',
-  6: null,
+  6: 'Bootstrap 表單：山行 Trailhead 線上報名',
   7: null,
   8: null,
   9: null,
