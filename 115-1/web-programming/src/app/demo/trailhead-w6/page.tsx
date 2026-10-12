@@ -952,7 +952,8 @@ export default function TrailheadPage() {
               </div>
 
               {/* 即時預覽：登山證 */}
-              <div className="col-lg-5" data-aos="fade-left" data-aos-delay="100">
+              <div className="col-lg-5 align-self-stretch" data-aos="fade-left" data-aos-delay="100">
+                <div className="pass-sticky">
                 <aside className="pass-card" id="passCard" aria-label="報名內容即時預覽">
                   <div className="pass-photo">
                     <img id="passPhoto" src={commonsUrl(heroPhoto.file, 960)} alt="" />
@@ -1003,6 +1004,7 @@ export default function TrailheadPage() {
                     <div className="pass-barcode" aria-hidden="true" />
                   </div>
                 </aside>
+                </div>
               </div>
             </div>
           </div>

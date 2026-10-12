@@ -1551,9 +1551,22 @@ html:has(.trail-page) {
 // ------------------------------------------------------------------
 // Live preview — the "trail pass"
 // ------------------------------------------------------------------
+// On desktop the card stays vertically centred in the viewport while the
+// (much taller) form scrolls past: this wrapper is as tall as the visible area
+// below the navbar, sticks to its top edge, and centres the card inside itself.
+// The column is stretched to the form's height so there is room to travel;
+// min(…, 100%) keeps the wrapper from making the row taller than the form.
+.pass-sticky {
+  @include media-breakpoint-up(lg) {
+    position: sticky;
+    top: 4rem;
+    display: grid;
+    align-items: center;
+    height: min(calc(100vh - 4rem), 100%);
+  }
+}
+
 .pass-card {
-  position: sticky;
-  top: 5.5rem;
   max-width: 26rem;
   margin-inline: auto;
   border-radius: 1.5rem;
