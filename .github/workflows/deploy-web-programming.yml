@@ -45,6 +45,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Without this Next.js rebuilds everything from scratch on every run and
+      # warns "No build cache found". The key changes with the lockfile or any
+      # source file; restore-keys still reuse the closest older cache.
+      - name: Restore Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: 115-1/web-programming/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('115-1/web-programming/pnpm-lock.yaml') }}-${{ hashFiles('115-1/web-programming/src/**', '115-1/web-programming/next.config.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('115-1/web-programming/pnpm-lock.yaml') }}-
+            ${{ runner.os }}-nextjs-
+
       - name: Build (Next.js static export to out/)
         run: pnpm run build
 
