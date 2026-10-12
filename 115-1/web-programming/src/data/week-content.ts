@@ -106,4 +106,57 @@ if ($file !== null) {
 </div>`,
     },
   },
+
+  4: {
+    objectives: ['本週適逢教師節放假，沒有上課，課程進度順延到第 05 週'],
+    showcase: '本週停課，沒有新的課堂成果。',
+    code: {
+      lang: 'txt',
+      snippet: '（本週停課，沒有程式碼）',
+    },
+    reflection: '本週放假沒有上課。',
+  },
+
+  5: {
+    objectives: [
+      '在 Bootstrap 5 的版面與元件之上，搭配老師指定的三個函式庫：AOS（捲動進場動畫）、SweetAlert2（對話框／提示）、Chart.js（圖表）',
+      '另外自己找三個函式庫整合進同一個網站：Swiper（路線卡片輪播）、Leaflet（互動地圖）、Typed.js（首頁打字效果）',
+      '練習把各函式庫的初始化集中在一個 init()，並回傳 cleanup，離開頁面時把地圖、圖表、輪播一併銷毀',
+      '練習 Bootstrap 的 Offcanvas、ScrollSpy、Progress、Accordion、Table、List group 等元件',
+    ],
+    showcase:
+      '做了一個「山行 Trailhead」台灣高山步道指南（課程練習用，梯次與報名流程皆為虛構）。首頁標題用 Typed.js 輪播；六條路線的卡片用 Swiper 左右滑動，卡片照片上那條白線是直接拿該路線的海拔剖面資料畫成的 SVG；Leaflet 地圖標出每座山的位置，點清單會飛過去；Chart.js 畫了里程長條圖、難度圓餅圖，以及可以切換路線的海拔剖面折線圖；「加入行程」「報名梯次」「裝備清單打勾完成」都用 SweetAlert2 回饋；各區塊進場動畫用 AOS。另外加了照片牆（照片來自 Wikimedia Commons，頁尾標示作者與授權）、首頁照片視差與山名跑馬燈等 CSS 動畫，以及 CountUp.js 的數字跳動和 canvas-confetti 的彩帶。',
+    links: [
+      { label: '查看 Demo', url: '/demo/trailhead/', primary: true },
+      {
+        label: '原始碼（GitHub）',
+        url: 'https://github.com/qmkc/nfu-coursework/tree/main/115-1/web-programming/src/app/demo/trailhead',
+      },
+      { label: '老師的範例（GoLearn 線上學習平台）', url: 'https://goclass.infinityfreeapp.com/weekly/week05/index.html' },
+    ],
+    code: {
+      lang: 'ts',
+      filename: 'src/app/demo/trailhead/initTrailPage.ts',
+      snippet: `// Leaflet：每座山一個標記，點左側清單就飛過去並打開說明
+for (const trail of trails) {
+  const marker = L.marker([trail.lat, trail.lng], {
+    title: trail.peak,
+    icon: L.divIcon({ className: "trail-marker", html: '<i class="bi bi-triangle-fill"></i>' }),
+  })
+    .addTo(map)
+    .bindPopup(popup);
+  markers.set(trail.id, marker);
+}
+
+document.querySelectorAll<HTMLButtonElement>("[data-fly]").forEach((btn) => {
+  on(btn, "click", () => {
+    const trail = trailById.get(btn.dataset.fly ?? "");
+    const marker = trail && markers.get(trail.id);
+    if (!map || !trail || !marker) return;
+    map.flyTo([trail.lat, trail.lng], 12, { duration: 1.2 });
+    marker.openPopup();
+  });
+});`,
+    },
+  },
 };

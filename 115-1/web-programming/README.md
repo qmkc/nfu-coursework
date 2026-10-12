@@ -18,6 +18,8 @@
 - 如果有「請求期才能決定內容」的功能，用 **純 PHP**（不含框架）寫成 `public/api/` 底下的獨立端點，詳見下方「PHP API」
 - `/demo/iphone-duo/`（Week 3）是例外：自己一整套深色風格、重新編譯過的 Bootstrap（Sass）、Three.js 3D 模型、GSAP 動畫，跟其他頁面共用的 `globals.css`／淺深色主題完全分開，詳見下方「Week 3 Demo」
 
+- `/demo/trailhead/`（Week 5）同樣是獨立路由：Bootstrap（Sass 重新編譯的森林綠主題）＋ AOS、SweetAlert2、Chart.js，再加上自選的 Swiper、Leaflet、Typed.js，詳見下方「Week 5 Demo」
+
 ## PHP API
 
 `public/api/` 放請求期才需要後端處理的端點，純 PHP、不用框架：
@@ -66,6 +68,35 @@ python3 -m venv .venv && . .venv/bin/activate
 pip install -r scripts/requirements-iphone-duo-assets.txt
 python3 scripts/prepare-iphone-duo-assets.py
 ```
+
+## Week 5 Demo（`/demo/trailhead/`）
+
+Week 5 的作業是「Bootstrap + AOS + SweetAlert2 + Chart.js，再自己找 3 個函式庫做一個網站，題目自訂」（Week 4 教師節放假停課）。做的是「山行 Trailhead」台灣高山步道指南，架構照 Week 3 那條路由的做法：
+
+```txt
+src/app/demo/trailhead/
+  layout.tsx           這條路由自己的 metadata、Google Fonts、各函式庫的 CSS 匯入
+  page.tsx             畫面（建置期由 data.ts 產生 HTML）
+  data.ts              路線、裝備、梯次、FAQ 資料，page.tsx 與 initTrailPage.ts 共用
+  styles.scss          森林綠淺色主題，用 Sass 變數重新編譯一次 Bootstrap
+  initTrailPage.ts     所有互動，包成 init() 並回傳 cleanup
+  TrailPageScript.tsx  'use client' 元件，mount 時跑 initTrailPage()，unmount 時跑 cleanup
+```
+
+| 函式庫 | 用在哪裡 |
+| --- | --- |
+| Bootstrap 5 | Navbar／Collapse、ScrollSpy、Offcanvas（我的行程）、Card、List group、Progress、Table、Accordion |
+| AOS | 各區塊捲動進場動畫 |
+| SweetAlert2 | 路線介紹、加入行程提示、梯次報名（select 輸入）、裝備清單完成 |
+| Chart.js | 里程長條圖、難度圓餅圖、可切換路線的海拔剖面折線圖 |
+| Swiper（自選） | 熱門路線卡片輪播 |
+| Leaflet（自選） | 路線位置地圖，圖磚來自 OpenStreetMap |
+| Typed.js（自選） | 首頁標題打字效果 |
+| CountUp.js、canvas-confetti（加碼） | 首頁數字跳動、報名／送出行程／裝備齊全時的彩帶 |
+
+照片全部來自 Wikimedia Commons，用 `Special:FilePath` 直接連過去（沒有放進 repo），作者與授權列在頁尾；首頁照片視差、雲霧、山名跑馬燈、卡片上的海拔剖面線、地圖標記脈衝等動畫都是純 CSS，`prefers-reduced-motion` 時會關掉。
+
+站上的里程與海拔剖面是概略值，梯次、領隊與報名流程皆為虛構，沒有任何資料會被送出。
 
 ## 部署
 
