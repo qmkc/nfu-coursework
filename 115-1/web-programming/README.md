@@ -130,7 +130,7 @@ public/demo/trailhead-w7/
   lessons/1～3.php   三節課，每節 10 題，每題一個 exNN() 函式
   lib/app.php        範例目錄（標題、說明、練習題）、h()／url()、頁面外框、用 token_get_all() 做的語法上色
   lib/trails.php     路線、梯次、租借裝備資料（跟 Week 5／6 的 data.ts 同一批路線）
-  assets/            手寫的 CSS（不用 Bootstrap）與一支小 JS（深淺色、複製、進度、← → 換題）
+  assets/            手寫的 CSS（不用 Bootstrap）與一支小 JS（深淺色、複製、搜尋、← → 換題）
 ```
 
 網址上不會出現 `.php`：`.htaccess` 把不是實體檔案的路徑都改寫給 `index.php`，由它看路徑決定要顯示哪一頁；直接打 `index.php` 會 301 轉回資料夾網址。範例頁右邊的原始碼面板只擷取該題在 lesson 檔裡的那一段（從 `/** EX NN` 開始到下一題之前），行號跟原檔一致，「全檔」會跳到 `/source/lesson-N#L行號`。原始碼頁只接受 `lib/app.php` 裡 `SOURCES` 白名單的代號，不拿網址去拼檔案路徑。

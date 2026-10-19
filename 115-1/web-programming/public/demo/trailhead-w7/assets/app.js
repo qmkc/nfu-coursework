@@ -1,4 +1,4 @@
-// 只做畫面上的小互動：深淺色、複製／換行、完成進度、目錄搜尋、← → 換題。
+// 只做畫面上的小互動：深淺色、複製／換行、目錄搜尋、← → 換題。
 // 範例本身的邏輯都在 PHP，這支 JS 拿掉頁面也照樣能用。
 (() => {
   const store = {
@@ -66,48 +66,6 @@
       });
     }
   });
-
-  // ---- 完成進度（只存在這台瀏覽器） ----
-  const done = new Set(store.get("php30:done", []));
-  const total = document.querySelectorAll("[data-card]").length;
-
-  const paint = () => {
-    document.querySelectorAll("[data-card]").forEach((card) => {
-      card.classList.toggle("is-done", done.has(Number(card.dataset.card)));
-    });
-    document.querySelectorAll("[data-done-toggle]").forEach((btn) => {
-      const on = done.has(Number(btn.dataset.doneToggle));
-      btn.classList.toggle("is-done", on);
-      btn.setAttribute("aria-pressed", String(on));
-      const label = btn.querySelector("[data-done-label]");
-      if (label) label.textContent = on ? "已完成" : "標記完成";
-    });
-    const count = [...done].filter((n) => n >= 1 && n <= 30).length;
-    document
-      .querySelectorAll("[data-progress-text]")
-      .forEach((el) => (el.textContent = `${count} / ${total || 30}`));
-    document
-      .querySelectorAll("[data-progress-bar]")
-      .forEach((el) => (el.style.width = `${(count / 30) * 100}%`));
-  };
-
-  document.querySelectorAll("[data-done-toggle]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const n = Number(btn.dataset.doneToggle);
-      if (done.has(n)) done.delete(n);
-      else done.add(n);
-      store.set("php30:done", [...done]);
-      paint();
-    });
-  });
-  document
-    .querySelector("[data-progress-reset]")
-    ?.addEventListener("click", () => {
-      done.clear();
-      store.set("php30:done", []);
-      paint();
-    });
-  paint();
 
   // ---- 目錄搜尋 ----
   const search = document.querySelector("[data-search]");

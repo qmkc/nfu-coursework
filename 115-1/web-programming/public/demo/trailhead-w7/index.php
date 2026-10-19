@@ -96,12 +96,6 @@ render_head(SITE_NAME . '｜Week 7 PHP 入門 30 題', 'page-index');
           <a href="#lesson-<?= $no ?>">第 <?= $no ?> 節</a>
         <?php endforeach; ?>
       </nav>
-      <div class="progress">
-        <span>完成</span>
-        <span class="progress-bar"><i data-progress-bar></i></span>
-        <b data-progress-text>0 / 30</b>
-        <button class="btn btn-ghost btn-sm" type="button" data-progress-reset>重設</button>
-      </div>
     </div>
 
     <?php foreach (LESSONS as $no => $lesson): ?>
@@ -117,7 +111,6 @@ render_head(SITE_NAME . '｜Week 7 PHP 入門 30 題', 'page-index');
             <li class="card<?= $n === 30 ? ' card-final' : '' ?>" data-card="<?= $n ?>" data-text="<?= h($text) ?>">
               <div class="card-top">
                 <span class="card-no"><?= ex_label($n) ?><?= $n === 30 ? ' · 整合成果' : '' ?></span>
-                <span class="tick" title="已完成" aria-hidden="true">✓</span>
               </div>
               <h3><a href="<?= url(ex_path($n)) ?>"><?= h($ex['title']) ?></a></h3>
               <p class="card-concept"><?= h($ex['concept']) ?></p>

@@ -511,32 +511,6 @@ pre {
   background: var(--bg-2);
 }
 
-.progress {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 0.85rem;
-  color: var(--ink-2);
-  white-space: nowrap;
-}
-
-.progress-bar {
-  width: 110px;
-  height: 8px;
-  border-radius: 99px;
-  background: var(--bg-2);
-  overflow: hidden;
-}
-
-.progress-bar i {
-  display: block;
-  height: 100%;
-  width: 0;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--brand), var(--sun));
-  transition: width 0.4s ease;
-}
-
 .lesson {
   margin-bottom: 3.5rem;
 }
@@ -650,27 +624,6 @@ pre {
   font-weight: 500;
 }
 
-.tick {
-  display: inline-grid;
-  place-items: center;
-  width: 1.3rem;
-  height: 1.3rem;
-  border: 1.5px solid var(--line);
-  border-radius: 50%;
-  font-size: 0.7rem;
-  color: transparent;
-}
-
-.is-done .tick {
-  border-color: var(--ok);
-  background: var(--ok);
-  color: var(--surface);
-}
-
-.card.is-done {
-  background: color-mix(in srgb, var(--ok-soft) 45%, var(--surface));
-}
-
 .card.is-hidden,
 .lesson.is-hidden {
   display: none;
@@ -764,7 +717,7 @@ pre {
 
 .ex-hero-row {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr;
   gap: 1.25rem;
   align-items: center;
   margin-top: 0.8rem;
@@ -807,47 +760,6 @@ pre {
   color: var(--ink-2);
 }
 
-.done-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.55rem 0.95rem;
-  border: 1px solid var(--line);
-  border-radius: 99px;
-  background: var(--surface);
-  color: var(--ink-2);
-  font: 500 0.88rem/1 var(--sans);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.done-box {
-  width: 1.05rem;
-  height: 1.05rem;
-  border: 1.5px solid var(--muted);
-  border-radius: 5px;
-  display: grid;
-  place-items: center;
-}
-
-.done-btn.is-done {
-  border-color: var(--ok);
-  background: var(--ok-soft);
-  color: var(--ok);
-}
-
-.done-btn.is-done .done-box {
-  border-color: var(--ok);
-  background: var(--ok);
-}
-
-.done-btn.is-done .done-box::after {
-  content: "✓";
-  color: var(--surface);
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
 @media (width <= 720px) {
   .ex-hero-row {
     grid-template-columns: 1fr;
@@ -855,10 +767,6 @@ pre {
 
   .ex-num {
     display: none;
-  }
-
-  .done-btn {
-    justify-self: start;
   }
 }
 

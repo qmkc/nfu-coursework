@@ -189,8 +189,6 @@ function render_example(int $n): void
           <h1><?= h($ex['title']) ?></h1>
           <p class="ex-summary"><?= h($ex['summary']) ?></p>
         </div>
-        <button class="done-btn" type="button" data-done-toggle="<?= $n ?>"><span class="done-box"
-            aria-hidden="true"></span><span data-done-label>標記完成</span></button>
       </div>
     </section>
     <div class="ex-grid">
@@ -232,7 +230,7 @@ function render_example(int $n): void
         <a class="pager-link next" href="<?= url(ex_path($n + 1)) ?>"><small><?= ex_label($n + 1) ?> · 下一題
             →</small><?= h(EXAMPLES[$n + 1]['title']) ?></a>
       <?php else: ?>
-        <a class="pager-link next" href="<?= url() ?>"><small>全部完成 →</small>回到目錄看進度</a>
+        <a class="pager-link next" href="<?= url() ?>"><small>全部完成 →</small>回到目錄</a>
       <?php endif; ?>
     </nav>
   </main>
