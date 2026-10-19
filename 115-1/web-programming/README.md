@@ -119,6 +119,33 @@ Week 6 教表單。老師要求每週成果分開，所以不是直接改 Week 5
 
 身分證字號在摘要裡只顯示遮罩後的樣子，密碼完全不顯示；頁面上也提示不要填真實證號與密碼。
 報名表單旁的「登山證」是即時預覽，費用 =（梯次每人費用＋租借裝備）× 人數。使用者輸入的內容一律用 `textContent` 放進畫面，不經過 `innerHTML`。沒有任何資料會送出。
+## Week 7 PHP（`/demo/trailhead-w7/`）
+
+Week 7 是 PHP 入門 30 題。這週的東西要在請求當下由伺服器執行，所以不是 Next.js 路由，而是放在 `public/demo/trailhead-w7/` 的純 PHP（不用框架、不連資料庫），`next build` 時原樣複製進 `out/`，由 InfinityFree 執行：
+
+```txt
+public/demo/trailhead-w7/
+  .htaccess          DirectoryIndex 改成 index.php、擋掉 lib/ 與 lessons/，其餘網址都轉給 index.php
+  index.php          唯一入口：/ 是目錄，/ex/01～/ex/30 是範例，/source/{代號} 是原始碼
+  lessons/1～3.php   三節課，每節 10 題，每題一個 exNN() 函式
+  lib/app.php        範例目錄（標題、說明、練習題）、h()／url()、頁面外框、用 token_get_all() 做的語法上色
+  lib/trails.php     路線、梯次、租借裝備資料（跟 Week 5／6 的 data.ts 同一批路線）
+  assets/            手寫的 CSS（不用 Bootstrap）與一支小 JS（深淺色、複製、進度、← → 換題）
+```
+
+網址上不會出現 `.php`：`.htaccess` 把不是實體檔案的路徑都改寫給 `index.php`，由它看路徑決定要顯示哪一頁；直接打 `index.php` 會 301 轉回資料夾網址。範例頁右邊的原始碼面板只擷取該題在 lesson 檔裡的那一段（從 `/** EX NN` 開始到下一題之前），行號跟原檔一致，「全檔」會跳到 `/source/lesson-N#L行號`。原始碼頁只接受 `lib/app.php` 裡 `SOURCES` 白名單的代號，不拿網址去拼檔案路徑。
+
+範例題目都換成步道情境；最後一題的梯次報名表所有驗證都在伺服器端完成（表單有 `novalidate`），通過才產生登山證，資料不會被儲存。
+
+本機預覽不需要先 build，直接把 `public/` 當根目錄：
+
+```sh
+php -S localhost:8000 -t public
+# 開 http://localhost:8000/demo/trailhead-w7/
+```
+
+PHP 內建伺服器不讀 `.htaccess`，但找不到檔案時會往上層找 `index.php`，所以 `/ex/08` 這類網址在本機一樣能用（`lib/`、`lessons/` 的封鎖只在 Apache 上生效）。
+
 ## 部署
 
 依課程要求，使用 **InfinityFree** 作為網站部署平台，透過 **GitHub Actions** 自動化部署，`scripts/deploy.sh` 執行實際的部署動作。

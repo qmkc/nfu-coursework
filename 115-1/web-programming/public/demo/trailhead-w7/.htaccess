@@ -1,0 +1,18 @@
+# 整站的 public/.htaccess 只認 index.html，這個資料夾改成 index.php
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # lib/、lessons/ 只給 require 用，不能直接從網址打開
+  RewriteRule ^(lib|lessons)/ - [F,L]
+
+  # 直接打 index.php 的網址轉回乾淨的資料夾網址
+  RewriteCond %{THE_REQUEST} \s(/\S*?/)index\.php[\s?]
+  RewriteRule ^index\.php$ %1 [R=301,L]
+
+  # 其他不是實體檔案的路徑（/ex/08、/source/app…）都交給 index.php 分派
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.php [L,QSA]
+</IfModule>
